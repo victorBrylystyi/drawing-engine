@@ -2,7 +2,7 @@
 import * as THREE from 'three'
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass'
 import { drag } from './utils'
-import { lerp } from 'three/src/math/MathUtils'
+import { lerp, RAD2DEG } from 'three/src/math/MathUtils'
 import { GUI } from 'dat.gui'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
@@ -13,6 +13,8 @@ const drawEngine = (assets) => {
         console.log(assets)
         let paint = false
         let shouldDraw = false
+        let startDim = 50
+        // let fi = 0
 
         const currentMousePosition =  new THREE.Vector2()
         const prevMousePosition =  new THREE.Vector2()
@@ -20,22 +22,20 @@ const drawEngine = (assets) => {
         // const raycaster = new THREE.Raycaster()
         // const pointer = new THREE.Vector2()
 
-        const canvas = document.createElement('canvas')
         const rootElement = document.querySelector('#root')
-        
+        const w = rootElement.clientWidth
+        const h = rootElement.clientHeight
+
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+
         rootElement.appendChild(canvas)
 
         const stats = new Stats()
         rootElement.appendChild( stats.dom )
 
-        const gui = new GUI() // add to personal div 
-        // rootElement.appendChild(gui.domElement)
-
-        const w = rootElement.clientWidth
-        const h = rootElement.clientHeight
-
-        canvas.width = w
-        canvas.height = h
+        const gui = new GUI()
 
     // -------------------------  WebGLl Renderer & RenderTarget  ------------------------------
 
@@ -97,7 +97,7 @@ const drawEngine = (assets) => {
 
         const brush = new THREE.Group()
         const brushMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(50,50), 
+            new THREE.PlaneGeometry(startDim,startDim), 
             new THREE.MeshBasicMaterial({
                 map:assets[assets.findIndex( texture => texture.name === 'brush_1')] ,
                 transparent: true,
@@ -121,13 +121,13 @@ const drawEngine = (assets) => {
         // brush.add(frame)
         sceneCursor.add(brush)
 
-        const r = 5
-        const count = 256 * 2
+        // const r = 5
+        const count = 256
         let pointerCount = 0
 
         const circle = new THREE.InstancedMesh(        // brush 
             // new THREE.CircleGeometry(r, 64),
-            new THREE.PlaneGeometry(50,50),
+            new THREE.PlaneGeometry(startDim,startDim),
             new THREE.MeshBasicMaterial({
                 transparent:true,
                 depthTest:false, 
@@ -195,6 +195,8 @@ const drawEngine = (assets) => {
         resultPlane.geometry.attributes.position.setXYZ(3,D.x,D.y,D.z)
 
         resultPlane.geometry.attributes.position.needsUpdate = true
+
+        console.log(circle)
 
     // ----------------------------------- Support functions ----------------------------------- 
 
@@ -366,11 +368,13 @@ const drawEngine = (assets) => {
         const params = {
             'Brush Color': circle.material.color.getHex(),
             'Clean Screen': setCleanScreen,
-            'Brushes': 'brush_1',
+            'Textures': 'brush_1',
             'Opacity': 1,
+            'Brush size': 50,
+            "Rotation brush": 0
         }
 
-        circle.material.map = assets[assets.findIndex( texture => texture.name === params['Brushes'])]
+        circle.material.map = assets[assets.findIndex( texture => texture.name === params['Textures'])]
         circle.material.needsUpdate = true
 
         gui.add(params,'Clean Screen')
@@ -381,7 +385,7 @@ const drawEngine = (assets) => {
             brushMesh.material.color.setHex( color )
         })
 
-		gui.add( params, 'Brushes', [
+		gui.add( params, 'Textures', [
 			'brush_1',
 			'brush_2',
 			'brush_3',
@@ -396,8 +400,7 @@ const drawEngine = (assets) => {
 			'brush_12',
             'brush_13',
             'brush_14',
-            'brush_15',
-            'brush_16',
+            'brush_15'
 		])
 		.onChange( ( v ) => {
             const texture = assets[assets.findIndex( texture => texture.name === v)]
@@ -412,17 +415,37 @@ const drawEngine = (assets) => {
             quad2.material.opacity = v
 		})    
 
+        gui.add( params, 'Brush size', 10, 60, 1 )
+        .onChange((v) => {
+            const scale = v/startDim
+            circle.geometry.scale(scale,scale,scale)
+            brushMesh.geometry.scale(scale,scale,scale)
+            startDim = v
+        })
+        // gui.add( params, 'Rotation brush', -Math.PI, Math.PI, 0.1 )
+        // .onChange((radians) => {
+        //     circle.geometry.rotateZ(radians)
+        //     brushMesh.rotation.z = radians
+        // })
+
+
     // --------------------------------------------------- Animation ---------------------------------------------------
 
     const animation = () => {
 
         stats.begin()
+        // fi += 0.01
+        // circle.geometry.rotateZ(fi)
 
         shouldDraw ? renderMove() : quad.render(renderer)
 
         // if (shouldDraw) renderMove()
 
+        // brushMesh.rotation.z = fi
+
+
         renderCursor()
+
 
         // renderer.render(sceneP,cameraP) // perspective scene
 

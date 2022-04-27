@@ -7,6 +7,7 @@ import drawEngine from './drawEngine'
 const app = () => {
 
     const assets = []
+    let count = 0
 
     const rootElement = document.querySelector('#root')
     const loadElement = new LoaderIndicator(rootElement)
@@ -28,13 +29,14 @@ const app = () => {
         './assets/brush_13.png',
         './assets/brush_14.png',
         './assets/brush_15.png',
-        './assets/brush_16.png',
     ]
 
     const goApp = () => {
         rootElement.removeChild( loadElement.holder )
         drawEngine(assets)
     }
+
+    const calculate = () => count +=1
 
     for (let i = 0; i < urls.length; i++) {
         new Promise((resolve, reject) => {
@@ -45,6 +47,7 @@ const app = () => {
                     // texture.minFilter = THREE.NearestFilter
                     // texture.magFilter = THREE.NearestFilter
                     texture.generateMipmaps = false
+                    loadElement.updateText(`${calculate()} of ${urls.length}`)
                     assets.push(texture)
                     if (assets.length === urls.length) goApp()
                 },

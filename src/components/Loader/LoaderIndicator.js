@@ -4,12 +4,18 @@ class LoaderIndicator {
 		this.rootElem = inputDomElement;
 		this.loaderWidth = '150px';
 		this.loaderHeight = '150px';
+		this.text = document.createElement( 'a' )
+
 		this.init();
 	}
 
 	init() {
+		this.text.textContent = 'Loading...'
 		this.createHolder();
 		this.createLoader();
+	}
+	updateText(text = '...'){
+		this.text.textContent = 'Loading ' + text
 	}
 
 	addElementToHolder( element ) {
@@ -45,6 +51,13 @@ class LoaderIndicator {
 	}
 
 	createLoader() {
+		this.ldr = document.createElement( 'div' );
+		this.ldr.className = 'containerLoader';	
+		this.ldr.style.display = 'flex'
+		this.ldr.style.justifyContent = 'center';
+		this.ldr.style.alignItems = 'center';
+		
+
 		this.loaderElem = document.createElement( 'div' );
 		this.loaderElem.className = 'loader';
 		this.loaderElem.style.width = this.loaderWidth;
@@ -76,7 +89,20 @@ class LoaderIndicator {
 		style.innerHTML = keyFrames;
 		this.loaderElem.appendChild( style );
 
-		this.holder.appendChild( this.loaderElem );
+		this.statusElem = document.createElement( 'div' );
+		this.statusElem.className = 'status'
+		this.statusElem.style.display = 'flex'
+		this.statusElem.style.justifyContent = 'center';
+		this.statusElem.style.alignItems = 'center';
+		this.statusElem.style.position = 'absolute'
+
+		this.statusElem.appendChild(this.text)
+		this.ldr.style.justifyContent = 'center';
+		this.ldr.style.alignItems = 'center';
+
+		this.ldr.appendChild( this.statusElem);
+		this.ldr.appendChild( this.loaderElem );
+		this.holder.appendChild( this.ldr );
 	}
 }
 
