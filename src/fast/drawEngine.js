@@ -2,7 +2,7 @@
 import * as THREE from 'three'
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass'
 import { drag } from './utils'
-import { lerp, RAD2DEG } from 'three/src/math/MathUtils'
+import { lerp, DEG2RAD } from 'three/src/math/MathUtils'
 import { GUI } from 'dat.gui'
 import Stats from 'three/examples/jsm/libs/stats.module'
 
@@ -10,11 +10,14 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 const drawEngine = (assets) => {
 
     // -------------------------  Support variables  ------------------------------
-        console.log(assets)
+        // console.log(assets)
         let paint = false
         let shouldDraw = false
         let startDim = 50
-        // let fi = 0
+        const paramsCircle = {
+            'Brush size': 1,
+            'Rotation': 0,
+        }
 
         const currentMousePosition =  new THREE.Vector2()
         const prevMousePosition =  new THREE.Vector2()
@@ -196,7 +199,7 @@ const drawEngine = (assets) => {
 
         resultPlane.geometry.attributes.position.needsUpdate = true
 
-        console.log(circle)
+        // console.log(circle)
 
     // ----------------------------------- Support functions ----------------------------------- 
 
@@ -278,7 +281,10 @@ const drawEngine = (assets) => {
             currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
 
             circle.count = 1
-            circle.setMatrixAt(0, new THREE.Matrix4().setPosition(pointerWorldPos))
+            const matrix = new THREE.Matrix4()
+            matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+            matrix.setPosition(pointerWorldPos)
+            circle.setMatrixAt(0, matrix)
             circle.instanceMatrix.needsUpdate = true
 
             renderMove()
@@ -311,14 +317,19 @@ const drawEngine = (assets) => {
                         const dt = i / (distance-1)
                         const x = lerp(prevMousePosition.x, currentMousePosition.x, dt)
                         const y = lerp(prevMousePosition.y, currentMousePosition.y, dt)
-
-                        circle.setMatrixAt(i + pointerCount, new THREE.Matrix4().setPosition(x,y,0))
+                        const matrix = new THREE.Matrix4()
+                        matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                        matrix.setPosition(x,y,0)
+                        circle.setMatrixAt(i + pointerCount, matrix)
                         circle.instanceMatrix.needsUpdate = true
                     }
                     
                 } else {
                     circle.count = 1
-                    circle.setMatrixAt(0, new THREE.Matrix4().setPosition(pointerWorldPos))
+                    const matrix = new THREE.Matrix4()
+                    matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                    matrix.setPosition(pointerWorldPos)
+                    circle.setMatrixAt(0, matrix)
                     circle.instanceMatrix.needsUpdate = true
                 }
                 pointerCount += distance
@@ -364,7 +375,7 @@ const drawEngine = (assets) => {
         window.addEventListener('pointerup', () => up())
 
     // --------------------------------------------------- GUI ---------------------------------------------------
-
+    
         const params = {
             'Brush Color': circle.material.color.getHex(),
             'Clean Screen': setCleanScreen,
@@ -416,17 +427,16 @@ const drawEngine = (assets) => {
 		})    
 
         gui.add( params, 'Brush size', 10, 60, 1 )
-        .onChange((v) => {
-            const scale = v/startDim
+        .onChange((newDim) => {
+            const scale = newDim/startDim 
             circle.geometry.scale(scale,scale,scale)
             brushMesh.geometry.scale(scale,scale,scale)
-            startDim = v
+            startDim = newDim
         })
-        // gui.add( params, 'Rotation brush', -Math.PI, Math.PI, 0.1 )
-        // .onChange((radians) => {
-        //     circle.geometry.rotateZ(radians)
-        //     brushMesh.rotation.z = radians
-        // })
+        gui.add( paramsCircle, 'Rotation', -180, 180, 1 )
+        .onChange((deg) => {
+            brushMesh.rotation.z = deg * DEG2RAD
+        })
 
 
     // --------------------------------------------------- Animation ---------------------------------------------------
@@ -434,21 +444,12 @@ const drawEngine = (assets) => {
     const animation = () => {
 
         stats.begin()
-        // fi += 0.01
-        // circle.geometry.rotateZ(fi)
 
         shouldDraw ? renderMove() : quad.render(renderer)
 
-        // if (shouldDraw) renderMove()
-
-        // brushMesh.rotation.z = fi
-
-
         renderCursor()
 
-
         // renderer.render(sceneP,cameraP) // perspective scene
-
 
         stats.end()
 
