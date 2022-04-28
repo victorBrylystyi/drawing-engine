@@ -370,7 +370,7 @@ const drawEngine = (assets) => {
             'Clean Screen': setCleanScreen,
             'Textures': 'brush_1',
             'Opacity': 1,
-            'Brush size': 50,
+            'Brush size': startDim,
             "Rotation brush": 0
         }
 

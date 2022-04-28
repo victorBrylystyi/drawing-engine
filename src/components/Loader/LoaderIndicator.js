@@ -1,6 +1,6 @@
 
 class LoaderIndicator {
-	constructor( inputDomElement ) {
+	constructor( inputDomElement = null ) {
 		this.rootElem = inputDomElement;
 		this.loaderWidth = '150px';
 		this.loaderHeight = '150px';
@@ -36,7 +36,8 @@ class LoaderIndicator {
 		this.holder = document.createElement( 'div' );
 		this.holder.className = 'holder';
 
-		this.resize();
+
+		// this.resize();
 
 		this.holder.style.display = 'flex';
 		this.holder.style.justifyContent = 'center';
@@ -45,9 +46,13 @@ class LoaderIndicator {
 
 		if ( this.rootElem ) {
 			this.rootElem.appendChild( this.holder );
-		}else {
+		} else {
 			document.body.appendChild( this.holder );
 		}
+
+		this.holder.style.width = '100%';
+		this.holder.style.height = '100%';
+
 	}
 
 	createLoader() {
