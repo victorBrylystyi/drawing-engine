@@ -5,7 +5,7 @@ import { drag } from './utils'
 import { lerp, DEG2RAD } from 'three/src/math/MathUtils'
 import { GUI } from 'dat.gui'
 import Stats from 'three/examples/jsm/libs/stats.module'
-
+import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 
 const drawEngine = (assets) => {
 
@@ -14,10 +14,12 @@ const drawEngine = (assets) => {
         let paint = false
         let shouldDraw = false
         let startDim = 50
+        let viewMode = false
         const paramsCircle = {
             'Brush size': 1,
             'Rotation': 0,
         }
+
 
         const currentMousePosition =  new THREE.Vector2()
         const prevMousePosition =  new THREE.Vector2()
@@ -144,18 +146,35 @@ const drawEngine = (assets) => {
     
     // -----------------------------------  Perspective Scene  ----------------------------------- 
 
-        const cameraP = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10 )
+        const cameraP = new THREE.PerspectiveCamera( 70, rootElement.clientWidth / rootElement.clientHeight, 0.01, 10 )
         cameraP.position.z = 1
 
         const sceneP = new THREE.Scene()
         sceneP.background = new THREE.Color('green')
+        const controls = new OrbitControls(cameraP,renderer.domElement)
+        // controls.update()
+        controls.maxDistance = 0
+        controls.maxDistance = 1.1
+        controls.enabled = false
 
-        const resultPlane = new THREE.Mesh(new THREE.PlaneGeometry(2,1), new THREE.MeshBasicMaterial({map: rt.texture, side: THREE.DoubleSide}))
+        const resultPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(2,1), 
+            new THREE.MeshBasicMaterial({
+                map: rt.texture, 
+                side: THREE.FrontSide,
+
+            })
+        )
         // resultPlane.visible = false
 
-        const box = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
+        const box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.1 ), new THREE.MeshNormalMaterial() )
+        const box2 = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.1 ), new THREE.MeshNormalMaterial() )
 
-        sceneP.add( box )
+        box1.position.set(-0.2,0,0.5)
+        box2.position.set(0.2,0,0.5)
+
+        sceneP.add( box1 )
+        sceneP.add( box2 )
         sceneP.add(resultPlane)
 
         // console.log(resultPlane)
@@ -198,27 +217,20 @@ const drawEngine = (assets) => {
         resultPlane.geometry.attributes.position.setXYZ(3,D.x,D.y,D.z)
 
         resultPlane.geometry.attributes.position.needsUpdate = true
+        resultPlane.matrixAutoUpdate = false
 
-        // console.log(circle)
+        const loader = new THREE.ObjectLoader()
+
+        const cameraPDef = cameraP.toJSON()
+
+        const setCameraToDef = () => {
+            const parseCamera = loader.parse(cameraPDef)
+            console.log('parese',parseCamera)
+            cameraP.copy(parseCamera)
+        }
+
 
     // ----------------------------------- Support functions ----------------------------------- 
-
-
-        // const render = () => {
-        //     renderer.autoClear = false
-        
-        //     renderer.setRenderTarget(rt)
-        //     renderer.clearDepth()
-        
-        //     renderer.render(scene,camera)
-        
-        //     renderer.autoClear = true
-        
-        //     renderer.setRenderTarget(null)
-        //     quad.render(renderer)
-
-        //     pointerCount = 0 // clear integrate instancedMeshs index
-        // }
 
         const renderCursor = () => {
             renderer.autoClear = false
@@ -262,89 +274,6 @@ const drawEngine = (assets) => {
 
         }
 
-
-        const resize = () => {
-            // renderer.setSize(rootElement.clientWidth, rootElement.clientHeight)
-            // console.log(renderer.getViewport(new THREE.Vector4()))
-            
-            // renderer.setViewport(new THREE.Vector4(0,0,rootElement.clientWidth,rootElement.clientHeight))
-        }
-
-        const down = (event) => {
-
-            paint = true
-
-            setClearTempLayer()
-
-            // const pointerWorldPos = drag(event, rootElement)
-            const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-            currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
-
-            circle.count = 1
-            const matrix = new THREE.Matrix4()
-            matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-            matrix.setPosition(pointerWorldPos)
-            circle.setMatrixAt(0, matrix)
-            circle.instanceMatrix.needsUpdate = true
-
-            renderMove()
-           
-        }
-
-        const move = (event) => {
-
-            // const wp = drag(event, rootElement)
-            const wp = drag(event, {clientHeight:h,clientWidth:w})
-            brush.position.set(wp.x,wp.y,0)
-
-            if (paint){
-
-                shouldDraw = true
-
-                prevMousePosition.copy(currentMousePosition)
-                // const pointerWorldPos = drag(event, rootElement)
-                const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-                currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
-
-                const distance = Math.floor(prevMousePosition.distanceTo(currentMousePosition))
-
-                circle.count = (distance - 1) + pointerCount
-
-                if (distance > 1){
-
-                    for (let i = 0; i < distance; i++){
-
-                        const dt = i / (distance-1)
-                        const x = lerp(prevMousePosition.x, currentMousePosition.x, dt)
-                        const y = lerp(prevMousePosition.y, currentMousePosition.y, dt)
-                        const matrix = new THREE.Matrix4()
-                        matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-                        matrix.setPosition(x,y,0)
-                        circle.setMatrixAt(i + pointerCount, matrix)
-                        circle.instanceMatrix.needsUpdate = true
-                    }
-                    
-                } else {
-                    circle.count = 1
-                    const matrix = new THREE.Matrix4()
-                    matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-                    matrix.setPosition(pointerWorldPos)
-                    circle.setMatrixAt(0, matrix)
-                    circle.instanceMatrix.needsUpdate = true
-                }
-                pointerCount += distance
-            }
-
-        }
-
-        const up = () => {
-            
-            paint = false
-            shouldDraw = false
-
-            renderUp()
-        }
-        
         const setCleanScreen = () => {
             renderer.setRenderTarget(rt)
             renderer.setClearColor(new THREE.Color(0xeeeeee), 1)
@@ -360,6 +289,92 @@ const drawEngine = (assets) => {
             renderer.setRenderTarget(null)
         }
 
+
+        const resize = () => {
+            // renderer.setSize(rootElement.clientWidth, rootElement.clientHeight)
+            // console.log(renderer.getViewport(new THREE.Vector4()))
+            
+            // renderer.setViewport(new THREE.Vector4(0,0,rootElement.clientWidth,rootElement.clientHeight))
+        }
+
+        const down = (event) => {
+
+            if (!viewMode){
+                paint = true
+
+                setClearTempLayer()
+    
+                // const pointerWorldPos = drag(event, rootElement)
+                const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+                currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
+    
+                circle.count = 1
+                const matrix = new THREE.Matrix4()
+                matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                matrix.setPosition(pointerWorldPos)
+                circle.setMatrixAt(0, matrix)
+                circle.instanceMatrix.needsUpdate = true
+    
+                renderMove()
+            }
+        }
+
+        const move = (event) => {
+
+            if (!viewMode){
+                // const wp = drag(event, rootElement)
+                const wp = drag(event, {clientHeight:h,clientWidth:w})
+                brush.position.set(wp.x,wp.y,0)
+
+                if (paint){
+
+                    shouldDraw = true
+
+                    prevMousePosition.copy(currentMousePosition)
+                    // const pointerWorldPos = drag(event, rootElement)
+                    const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+                    currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
+
+                    const distance = Math.floor(prevMousePosition.distanceTo(currentMousePosition))
+
+                    circle.count = (distance - 1) + pointerCount
+
+                    if (distance > 1){
+
+                        for (let i = 0; i < distance; i++){
+
+                            const dt = i / (distance-1)
+                            const x = lerp(prevMousePosition.x, currentMousePosition.x, dt)
+                            const y = lerp(prevMousePosition.y, currentMousePosition.y, dt)
+                            const matrix = new THREE.Matrix4()
+                            matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                            matrix.setPosition(x,y,0)
+                            circle.setMatrixAt(i + pointerCount, matrix)
+                            circle.instanceMatrix.needsUpdate = true
+                        }
+                        
+                    } else {
+                        circle.count = 1
+                        const matrix = new THREE.Matrix4()
+                        matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                        matrix.setPosition(pointerWorldPos)
+                        circle.setMatrixAt(0, matrix)
+                        circle.instanceMatrix.needsUpdate = true
+                    }
+                    pointerCount += distance
+                }
+            }
+        }
+
+        const up = (event) => {
+            // event.preventDefault()
+            paint = false
+            shouldDraw = false
+
+            renderUp()
+
+        }
+        
     // --------------------------------------------------- Init ---------------------------------------------------
 
         renderer.setRenderTarget(rt)
@@ -372,7 +387,7 @@ const drawEngine = (assets) => {
         window.addEventListener('resize', () => resize())
         window.addEventListener('pointerdown', (event) => down(event))
         window.addEventListener('pointermove', (event) => move(event))
-        window.addEventListener('pointerup', () => up())
+        window.addEventListener('pointerup', (event) => up(event))
 
     // --------------------------------------------------- GUI ---------------------------------------------------
     
@@ -382,7 +397,7 @@ const drawEngine = (assets) => {
             'Textures': 'brush_1',
             'Opacity': 1,
             'Brush size': startDim,
-            "Rotation brush": 0
+            'Mode': 'Drawing'
         }
 
         circle.material.map = assets[assets.findIndex( texture => texture.name === params['Textures'])]
@@ -397,6 +412,7 @@ const drawEngine = (assets) => {
         })
 
 		gui.add( params, 'Textures', [
+            'clear',
 			'brush_1',
 			'brush_2',
 			'brush_3',
@@ -414,9 +430,10 @@ const drawEngine = (assets) => {
             'brush_15'
 		])
 		.onChange( ( v ) => {
-            const texture = assets[assets.findIndex( texture => texture.name === v)]
+            const texture = (v === 'clear') ? null : assets[assets.findIndex( texture => texture.name === v)]
             circle.material.map = texture
             brushMesh.material.map = texture
+            circle.material.color = new THREE.Color(0xeeeeee)
             circle.material.needsUpdate = true
             brushMesh.material.needsUpdate = true
 		})
@@ -433,10 +450,61 @@ const drawEngine = (assets) => {
             brushMesh.geometry.scale(scale,scale,scale)
             startDim = newDim
         })
+
         gui.add( paramsCircle, 'Rotation', -180, 180, 1 )
         .onChange((deg) => {
             brushMesh.rotation.z = deg * DEG2RAD
         })
+
+        gui.add( params, 'Mode', [
+			'Drawing',
+			'View'
+		])
+		.onChange( ( mode ) => {
+            viewMode = (mode === 'View') 
+
+
+            if (!viewMode){
+                resultPlane.position.set(0,0,0)
+                setCameraToDef()
+                // gui.removeFolder(gui.__folders['Plane settings'])
+
+            } else {
+                // cameraP.position.z = 1.01
+                // const mainFolder = gui.addFolder('Plane settings')
+                // const posFolder = mainFolder.addFolder('Position')
+                // const rotFolder = mainFolder.addFolder('Rotation')
+                // const scaleFolder = mainFolder.addFolder('Scale')
+
+
+                // posFolder.add(rlstPlaneSett.r,'X',-10,10,0.1)
+                // .onChange((value) => {
+                //     const matrix = new THREE.Matrix4();
+ 
+                //     matrix.makeShear(0, value*DEG2RAD,0, 0, 0, 0);
+                //     console.log(resultPlane.matrixAutoUpdate )
+                //     // apply shear matrix to geometry                  
+                //     resultPlane.geometry.applyMatrix4( matrix );
+                //     mtr = matrix.clone()
+                //     // resultPlane.position.x = value
+                // })
+
+                // posFolder.add(rlstPlaneSett.r,'Y',-10,10,0.1)
+                // .onChange((value) => {
+                //     resultPlane.position.y = value
+                // })
+
+                // posFolder.add(rlstPlaneSett.r,'Z',-10,10,0.1)
+                // .onChange((value) => {
+                //     resultPlane.position.z = value
+                // })
+
+                
+            }
+            controls.enabled = viewMode
+            // console.log(viewMode)
+		})
+
 
 
     // --------------------------------------------------- Animation ---------------------------------------------------
@@ -445,12 +513,20 @@ const drawEngine = (assets) => {
 
         stats.begin()
 
-        shouldDraw ? renderMove() : quad.render(renderer)
+        if (!viewMode){
+            shouldDraw ? renderMove() : quad.render(renderer)
+        }
 
-        renderCursor()
+        box1.rotation.x += 0.01
+        box1.rotation.y += 0.01
 
-        // renderer.render(sceneP,cameraP) // perspective scene
+        box2.rotation.x -= 0.01
+        box2.rotation.y -= 0.01
 
+
+        if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
+        if (viewMode) controls.update()
+        if (!viewMode) renderCursor()
         stats.end()
 
         requestAnimationFrame (animation)
