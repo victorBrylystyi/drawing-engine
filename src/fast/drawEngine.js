@@ -24,8 +24,8 @@ const drawEngine = (assets) => {
         const currentMousePosition =  new THREE.Vector2()
         const prevMousePosition =  new THREE.Vector2()
 
-        // const raycaster = new THREE.Raycaster()
-        // const pointer = new THREE.Vector2()
+        const raycaster = new THREE.Raycaster()
+        const pointer = new THREE.Vector2()
 
         const rootElement = document.querySelector('#root')
         const w = rootElement.clientWidth
@@ -68,12 +68,6 @@ const drawEngine = (assets) => {
             // anisotropy: 4
         })
 
-        renderer.setRenderTarget(temporaryLayer)
-        renderer.setClearColor(new THREE.Color(0x000000), 0)
-        renderer.clearColor()
-        renderer.setRenderTarget(null)
-
-
     // -------------------------  Orthograhic Scene  ------------------------------
     
         const scene = new THREE.Scene()
@@ -90,15 +84,21 @@ const drawEngine = (assets) => {
         camera.updateProjectionMatrix()  //!!!! 
         
 
-        const quad = new FullScreenQuad(new THREE.MeshBasicMaterial({map: rt.texture}))
+        const quad = new FullScreenQuad(new THREE.MeshBasicMaterial({
+            map: rt.texture, 
+            transparent:true,           
+            // depthTest:false, 
+            // depthWrite:false 
+        }))
         const quad2 = new FullScreenQuad(new THREE.MeshBasicMaterial({
             map: temporaryLayer.texture, 
             transparent:true, 
-            depthTest:false, 
-            depthWrite:false
+            // depthTest:false, 
+            // depthWrite:false
         }))
 
         quad._mesh.position.z = 1
+        // quad2._mesh.position.z = 1
 
         const brush = new THREE.Group()
         const brushMesh = new THREE.Mesh(
@@ -149,32 +149,43 @@ const drawEngine = (assets) => {
         const cameraP = new THREE.PerspectiveCamera( 70, rootElement.clientWidth / rootElement.clientHeight, 0.01, 10 )
         cameraP.position.z = 1
 
+
+
         const sceneP = new THREE.Scene()
         sceneP.background = new THREE.Color('green')
+        // sceneP.add(cameraPhelper)
         const controls = new OrbitControls(cameraP,renderer.domElement)
         // controls.update()
         controls.maxDistance = 0
         controls.maxDistance = 1.1
         controls.enabled = false
+        // controls.enableZoom = false
+        // controls.enablePan = true
+        // controls.enableDamping = false
 
         const resultPlane = new THREE.Mesh(
-            new THREE.PlaneGeometry(2,1), 
+            new THREE.PlaneGeometry(1,1), 
             new THREE.MeshBasicMaterial({
-                map: rt.texture, 
-                side: THREE.FrontSide,
+                map:  rt.texture, 
+                side: THREE.DoubleSide,
+                transparent:true,
+                // depthTest:false,
+                // depthWrite:false,
+                // opacity:1
 
             })
         )
+        resultPlane.name = 'layer'
         // resultPlane.visible = false
 
-        const box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.1 ), new THREE.MeshNormalMaterial() )
+        const box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
         const box2 = new THREE.Mesh( new THREE.BoxGeometry( 0.1, 0.1, 0.1 ), new THREE.MeshNormalMaterial() )
 
-        box1.position.set(-0.2,0,0.5)
-        box2.position.set(0.2,0,0.5)
+        box1.position.set(0,0,0)
+        box2.position.set(0.1,0,0)
 
         sceneP.add( box1 )
-        sceneP.add( box2 )
+        // sceneP.add( box2 )
         sceneP.add(resultPlane)
 
         // console.log(resultPlane)
@@ -217,7 +228,33 @@ const drawEngine = (assets) => {
         resultPlane.geometry.attributes.position.setXYZ(3,D.x,D.y,D.z)
 
         resultPlane.geometry.attributes.position.needsUpdate = true
-        resultPlane.matrixAutoUpdate = false
+        // resultPlane.matrixAutoUpdate = true
+
+        const tempResulpPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(2,1), 
+            new THREE.MeshBasicMaterial({
+                map:  temporaryLayer.texture,
+                side: THREE.FrontSide,
+                transparent:true,
+                // depthTest:false,
+                // depthWrite:false,
+                // opacity:1
+
+            })
+        )
+        tempResulpPlane.name='tempLayer'
+        tempResulpPlane.geometry.attributes.position.copy(resultPlane.geometry.attributes.position)
+        resultPlane.geometry.attributes.position.needsUpdate = true
+        tempResulpPlane.material.needsUpdate = true
+        tempResulpPlane.visible = false
+        sceneP.add(tempResulpPlane)
+        // console.log(tempResulpPlane,sceneP)
+
+
+        resultPlane.geometry.attributes.position.needsUpdate = true
+        tempResulpPlane.geometry.attributes.position.needsUpdate = true
+        // tempResulpPlane.geometry.attributes.uv.needsUpdate = true
+        // resultPlane.geometry.attributes.uv.needsUpdate = true
 
         const loader = new THREE.ObjectLoader()
 
@@ -225,7 +262,6 @@ const drawEngine = (assets) => {
 
         const setCameraToDef = () => {
             const parseCamera = loader.parse(cameraPDef)
-            console.log('parese',parseCamera)
             cameraP.copy(parseCamera)
         }
 
@@ -249,14 +285,14 @@ const drawEngine = (assets) => {
         
             renderer.setRenderTarget(null)
 
-            quad.render(renderer)
+            quad.render(renderer) // что бы видеть прошлое что нарисовали 
             quad2.render(renderer)
 
             renderer.autoClear = true
 
-            pointerCount = 0 // clear integrate instancedMeshs index
+            tempResulpPlane.visible = true
 
-            // shouldDraw = false
+            pointerCount = 0 // clear integrate instancedMeshs index
         }
 
         const renderUp = () => {
@@ -269,14 +305,16 @@ const drawEngine = (assets) => {
             renderer.autoClear = true
         
             renderer.setRenderTarget(null)
-
             quad.render(renderer)
+
+            tempResulpPlane.visible = false
+            // resultPlane.visible = true
 
         }
 
         const setCleanScreen = () => {
             renderer.setRenderTarget(rt)
-            renderer.setClearColor(new THREE.Color(0xeeeeee), 1)
+            renderer.setClearColor(0x000000, 0)
             renderer.clearColor()
             renderer.setRenderTarget(null)
             renderUp()
@@ -303,65 +341,107 @@ const drawEngine = (assets) => {
                 paint = true
 
                 setClearTempLayer()
+
+                pointer.x = ( event.clientX / rootElement.clientWidth) * 2 - 1
+                pointer.y = 1 - ( event.clientY / rootElement.clientHeight ) * 2
+ 
+                raycaster.setFromCamera(pointer,cameraP)
+                const intersectObjects = raycaster.intersectObjects( sceneP.children )
+
+                const tempLayerObject = intersectObjects.find(item => item.object.name === 'tempLayer')
+                // console.log('pointer', pointer.clone(), tempLayerObject.uv.clone())
+                // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+                // console.log('intersectObjects', intersectObjects)
+                if (tempLayerObject){
+                    const pointerWorldPos = new THREE.Vector3(
+                        tempLayerObject.uv.x * rootElement.clientWidth,
+                        tempLayerObject.uv.y * rootElement.clientHeight,
+                        tempLayerObject.point.z
+                    )
     
-                // const pointerWorldPos = drag(event, rootElement)
-                const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-                currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
-    
-                circle.count = 1
-                const matrix = new THREE.Matrix4()
-                matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-                matrix.setPosition(pointerWorldPos)
-                circle.setMatrixAt(0, matrix)
-                circle.instanceMatrix.needsUpdate = true
-    
-                renderMove()
+                    currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
+        
+                    circle.count = 1
+                    const matrix = new THREE.Matrix4()
+                    matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                    matrix.setPosition(pointerWorldPos)
+                    circle.setMatrixAt(0, matrix)
+                    circle.instanceMatrix.needsUpdate = true
+        
+                    renderMove()
+                } 
             }
         }
 
         const move = (event) => {
 
+
             if (!viewMode){
                 // const wp = drag(event, rootElement)
                 const wp = drag(event, {clientHeight:h,clientWidth:w})
+
                 brush.position.set(wp.x,wp.y,0)
 
                 if (paint){
 
-                    shouldDraw = true
+
+   
 
                     prevMousePosition.copy(currentMousePosition)
                     // const pointerWorldPos = drag(event, rootElement)
-                    const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-                    currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
+                    // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+                    pointer.x = ( event.clientX / rootElement.clientWidth) * 2 - 1
+                    pointer.y = 1 - ( event.clientY / rootElement.clientHeight ) * 2
+    
+                    raycaster.setFromCamera(pointer,cameraP)
+                    const intersectObjects = raycaster.intersectObjects( sceneP.children )
+                    // console.log('intersectObjects', intersectObjects)
+                    const tempLayerObject = intersectObjects.find(item => item.object.name === 'tempLayer')
+                    // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+                    if (tempLayerObject){
 
-                    const distance = Math.floor(prevMousePosition.distanceTo(currentMousePosition))
+                        shouldDraw = true
 
-                    circle.count = (distance - 1) + pointerCount
-
-                    if (distance > 1){
-
-                        for (let i = 0; i < distance; i++){
-
-                            const dt = i / (distance-1)
-                            const x = lerp(prevMousePosition.x, currentMousePosition.x, dt)
-                            const y = lerp(prevMousePosition.y, currentMousePosition.y, dt)
+                        const pointerWorldPos = new THREE.Vector3(
+                            tempLayerObject.uv.x * rootElement.clientWidth,
+                            tempLayerObject.uv.y * rootElement.clientHeight,
+                            tempLayerObject.point.z
+                        )
+                        currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
+    
+                        const distance = Math.floor(prevMousePosition.distanceTo(currentMousePosition))
+    
+                        circle.count = (distance - 1) + pointerCount
+    
+                        if (distance > 1){
+    
+                            for (let i = 0; i < distance; i++){
+    
+                                const dt = i / (distance-1)
+                                const x = lerp(prevMousePosition.x, currentMousePosition.x, dt)
+                                const y = lerp(prevMousePosition.y, currentMousePosition.y, dt)
+                                const matrix = new THREE.Matrix4()
+                                matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
+                                matrix.setPosition(x,y,0)
+                                circle.setMatrixAt(i + pointerCount, matrix)
+                                circle.instanceMatrix.needsUpdate = true
+                            }
+                            
+                        } else {
+                            circle.count = 1
                             const matrix = new THREE.Matrix4()
                             matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-                            matrix.setPosition(x,y,0)
-                            circle.setMatrixAt(i + pointerCount, matrix)
+                            matrix.setPosition(pointerWorldPos)
+                            circle.setMatrixAt(0, matrix)
                             circle.instanceMatrix.needsUpdate = true
                         }
-                        
+                        pointerCount += distance
                     } else {
-                        circle.count = 1
-                        const matrix = new THREE.Matrix4()
-                        matrix.makeRotationZ(paramsCircle['Rotation']*DEG2RAD)
-                        matrix.setPosition(pointerWorldPos)
-                        circle.setMatrixAt(0, matrix)
-                        circle.instanceMatrix.needsUpdate = true
+
+                        shouldDraw = false
+                        // pointerCount = 0 
                     }
-                    pointerCount += distance
+
                 }
             }
         }
@@ -376,12 +456,11 @@ const drawEngine = (assets) => {
         }
         
     // --------------------------------------------------- Init ---------------------------------------------------
-
+        // setClearTempLayer()
         renderer.setRenderTarget(rt)
-        renderer.setClearColor(new THREE.Color(0xeeeeee), 1)
+        renderer.setClearColor(new THREE.Color(0x000000), 0)
         renderer.clearColor()
         renderer.setRenderTarget(null)
-        // renderer.setClearColor(new THREE.Color('black'), 1)
         renderUp() 
 
         window.addEventListener('resize', () => resize())
@@ -397,7 +476,8 @@ const drawEngine = (assets) => {
             'Textures': 'brush_1',
             'Opacity': 1,
             'Brush size': startDim,
-            'Mode': 'Drawing'
+            'Mode': 'Drawing',
+            'Scene color':  sceneP.background.getHex()
         }
 
         circle.material.map = assets[assets.findIndex( texture => texture.name === params['Textures'])]
@@ -441,6 +521,8 @@ const drawEngine = (assets) => {
 		gui.add( params, 'Opacity', 0, 1, 0.01 )
 		.onChange( ( v ) => {
             quad2.material.opacity = v
+            tempResulpPlane.material.opacity=v
+            brushMesh.material.opacity = v
 		})    
 
         gui.add( params, 'Brush size', 10, 60, 1 )
@@ -456,6 +538,26 @@ const drawEngine = (assets) => {
             brushMesh.rotation.z = deg * DEG2RAD
         })
 
+        const rlstPlaneSett = {
+            skew:{
+                'X': 0,
+                prev: 0,
+                matrixDef:resultPlane.matrix.clone()
+            },
+            t:{
+                'Z':0,
+                fw:0,
+                fh:0
+            }
+        }
+        gui.addColor(params,'Scene color')
+        .onChange((color) => {
+   
+            sceneP.background.setHex( color )
+
+        })
+        const rsltPlZ = resultPlane.position.z 
+
         gui.add( params, 'Mode', [
 			'Drawing',
 			'View'
@@ -465,45 +567,107 @@ const drawEngine = (assets) => {
 
 
             if (!viewMode){
-                resultPlane.position.set(0,0,0)
+                // resultPlane.position.set(0,0,0)
+                // tempResulpPlane.position.set(0,0,0)
+
                 setCameraToDef()
-                // gui.removeFolder(gui.__folders['Plane settings'])
+                gui.removeFolder(gui.__folders['Plane settings'])
+                // tempResulpPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
+                // resultPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
 
             } else {
                 // cameraP.position.z = 1.01
-                // const mainFolder = gui.addFolder('Plane settings')
-                // const posFolder = mainFolder.addFolder('Position')
+                const mainFolder = gui.addFolder('Plane settings')
+                // const skewFolder = mainFolder.addFolder('Skew')
+                const translatFolder = mainFolder.addFolder('Translate')
                 // const rotFolder = mainFolder.addFolder('Rotation')
                 // const scaleFolder = mainFolder.addFolder('Scale')
 
 
-                // posFolder.add(rlstPlaneSett.r,'X',-10,10,0.1)
-                // .onChange((value) => {
-                //     const matrix = new THREE.Matrix4();
+                // skewFolder.add(rlstPlaneSett.skew,'X',-10,10,0.01)
+                // .onChange((x) => {
+
+                //     // const neg = -1 
+                //     // const pos = 1
+
+                //     // let dir = 1
+
+                //     // if (x===rlstPlaneSett.skew.prev) return
+
+                //     // if (x>0){
+                //     //     if (x>rlstPlaneSett.skew.prev){
+                //     //         dir = pos 
+                //     //     } else {
+                //     //         dir = neg
+                //     //     }
+
+
+                //     // } else if (x<0){
+                //     //     if (x<rlstPlaneSett.skew.prev){
+                //     //         dir = pos 
+                //     //     } else {
+                //     //         dir = neg
+                //     //     }
+
+                //     // }
+
+                //     // console.log(dir)
+
+                //     // const newX = x * dir 
+
+                //     // const matrix = new THREE.Matrix4();
  
-                //     matrix.makeShear(0, value*DEG2RAD,0, 0, 0, 0);
-                //     console.log(resultPlane.matrixAutoUpdate )
-                //     // apply shear matrix to geometry                  
-                //     resultPlane.geometry.applyMatrix4( matrix );
-                //     mtr = matrix.clone()
-                //     // resultPlane.position.x = value
+                //     // matrix.makeShear(0, newX*DEG2RAD,0, 0, 0, 0);
+                //     // // console.log(resultPlane.matrixAutoUpdate )
+                //     // // apply shear matrix to geometry                  
+                //     // resultPlane.matrix.multiply(matrix.clone())
+                //     // tempResulpPlane.matrix.multiply(matrix.clone())
+                //     // resultPlane.matrixAutoUpdate=false
+                //     // tempResulpPlane.matrixAutoUpdate=false
+
+                //     // rlstPlaneSett.skew.prev = x
                 // })
 
-                // posFolder.add(rlstPlaneSett.r,'Y',-10,10,0.1)
-                // .onChange((value) => {
-                //     resultPlane.position.y = value
-                // })
+                translatFolder.add(rlstPlaneSett.t,'Z',0,1,0.01)
+                .onChange((z) => {
 
-                // posFolder.add(rlstPlaneSett.r,'Z',-10,10,0.1)
-                // .onChange((value) => {
-                //     resultPlane.position.z = value
-                // })
+
+
+                    const h = 2 * Math.tan((cameraP.fov) * (Math.PI/360)) * (cameraP.near + z) 
+                    const w = h * cameraP.aspect
+                    const buff = [...resultPlane.geometry.getAttribute('position').array]
+                    const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
+                    const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
+                    // resultPlane.translateZ(-z)
+                    // resultPlane.scale.set(w/fw,h/fh,h/fh) //.scale.set(w/fw,h/fh,1)
+                    // tempResulpPlane.scale.set(w/fw,h/fh,h/fh)
+                    // const m = cameraP.projectionMatrix.clone().makeTranslation(0,0,z)
+                    // const vert = new Float32Array( buff.map((item,index) => { 
+                    //     if (index === 2 || index === 5 || index === 8 || index === 11) return item 
+                    //     return item * Math.abs(w/fw)
+                    // } ) )
+                    // resultPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
+                    // tempResulpPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
+
+                    resultPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1) //.scale.set(w/fw,h/fh,1)
+                    tempResulpPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
+
+            
+
+                    resultPlane.geometry.attributes.position.needsUpdate = true
+                    tempResulpPlane.geometry.attributes.position.needsUpdate = true
+
+                    
+                    resultPlane.position.z = rsltPlZ - z
+                    tempResulpPlane.position.z = rsltPlZ - z
+
+                })
 
                 
             }
             controls.enabled = viewMode
-            // console.log(viewMode)
 		})
+
 
 
 
@@ -514,17 +678,22 @@ const drawEngine = (assets) => {
         stats.begin()
 
         if (!viewMode){
-            shouldDraw ? renderMove() : quad.render(renderer)
+
+            // shouldDraw ? renderMove() : quad.render(renderer)
+            if (shouldDraw){
+
+                renderMove()
+            } 
         }
 
         box1.rotation.x += 0.01
         box1.rotation.y += 0.01
 
-        box2.rotation.x -= 0.01
-        box2.rotation.y -= 0.01
+        // box2.rotation.x -= 0.01
+        // box2.rotation.y -= 0.01
 
-
-        if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
+        renderer.render(sceneP,cameraP)
+        // if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
         if (viewMode) controls.update()
         if (!viewMode) renderCursor()
         stats.end()
