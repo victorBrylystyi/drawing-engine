@@ -9,6 +9,8 @@ import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 
 const drawEngine = (assets) => {
 
+    // console.log(new Core(assets,document.querySelector('#root')) )
+
     // -------------------------  Support variables  ------------------------------
         // console.log(assets)
         let paint = false
@@ -48,7 +50,8 @@ const drawEngine = (assets) => {
             canvas, 
             antialias:true, 
             logarithmicDepthBuffer:true,
-            alpha:true
+            alpha:true,
+            // premultipliedAlpha:false
         })
 
         renderer.setSize(w, h)
@@ -58,14 +61,20 @@ const drawEngine = (assets) => {
             minFilter: THREE.NearestFilter, 
             magFilter: THREE.NearestFilter,
             generateMipmaps: false, 
-            // anisotropy: 4
+            // anisotropy: 4,
         })
 
         const temporaryLayer = new THREE.WebGLRenderTarget(w,h,{
             minFilter: THREE.NearestFilter, 
             magFilter: THREE.NearestFilter,
             generateMipmaps: false, 
-            // anisotropy: 4
+            // anisotropy: 4,
+        })
+        const rt3 = new THREE.WebGLRenderTarget(w,h,{
+            minFilter: THREE.NearestFilter, 
+            magFilter: THREE.NearestFilter,
+            generateMipmaps: false, 
+            anisotropy: 4,
         })
 
     // -------------------------  Orthograhic Scene  ------------------------------
@@ -87,14 +96,53 @@ const drawEngine = (assets) => {
         const quad = new FullScreenQuad(new THREE.MeshBasicMaterial({
             map: rt.texture, 
             transparent:true,           
-            // depthTest:false, 
-            // depthWrite:false 
+            side:THREE.FrontSide,
+            // blending:THREE.NoBlending,
+            // blending:THREE.CustomBlending,
+            // blendDst:THREE.OneFactor,
+            // blending:THREE.CustomBlending,
+            // blendDst:THREE.OneFactor,
+            // blending:THREE.CustomBlending,
+            // // blendSrc:THREE.OneMinusDstAlphaFactor,
+            // blendSrc:THREE.SrcAlphaFactor,
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendDst:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+            // blending:THREE.CustomBlending,
+            // blendSrc:THREE.SrcAlphaFactor,
+            // blendDst:THREE.OneFactor,
+            // blending:THREE.CustomBlending,
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrc:THREE.OneMinusDstAlphaFactor,
+
+            depthTest:false, 
+            depthWrite:false 
         }))
         const quad2 = new FullScreenQuad(new THREE.MeshBasicMaterial({
             map: temporaryLayer.texture, 
             transparent:true, 
-            // depthTest:false, 
-            // depthWrite:false
+            blending:THREE.CustomBlending,
+            // blendSrc:THREE.OneMinusSrcAlphaFactor,
+            // blendSrc:THREE.SrcAlphaFactor,
+            blendDst:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+
+            // blending:THREE.CustomBlending,
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrc:THREE.OneFactor,
+            // blending:THREE.NoBlending,
+            side:THREE.FrontSide,
+            depthTest:false, 
+            depthWrite:false
+        }))
+        const quad3 = new FullScreenQuad(new THREE.MeshBasicMaterial({
+            map: rt3.texture, 
+            transparent:true, 
+            side:THREE.FrontSide,
+            depthTest:false, 
+            depthWrite:false
         }))
 
         quad._mesh.position.z = 1
@@ -135,14 +183,22 @@ const drawEngine = (assets) => {
             new THREE.PlaneGeometry(startDim,startDim),
             new THREE.MeshBasicMaterial({
                 transparent:true,
-                depthTest:false, 
-                alphaTest:0
+                side:THREE.FrontSide,
+                // color:'red'
+                // blendEquation:THREE.NoBlending,
+                // blendEquation:THREE.AddEquation,
+                // blendSrc:THREE.SrcColorFactor
+                // depthTest:false,
+                // depthWrite:false
+                // depthTest:false, 
+                // alphaTest:0
                 // map: assets[assets.findIndex( texture => texture.name === 'brush_1')]
             }),
             count
         )
         circle.instanceMatrix.setUsage( THREE.DynamicDrawUsage ) // will be updated every frame
         scene.add(circle)
+
     
     // -----------------------------------  Perspective Scene  ----------------------------------- 
 
@@ -166,8 +222,8 @@ const drawEngine = (assets) => {
         const resultPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(1,1), 
             new THREE.MeshBasicMaterial({
-                map:  rt.texture, 
-                side: THREE.DoubleSide,
+                // map:  rt.texture, 
+                side: THREE.FrontSide,
                 transparent:true,
                 // depthTest:false,
                 // depthWrite:false,
@@ -233,7 +289,7 @@ const drawEngine = (assets) => {
         const tempResulpPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(2,1), 
             new THREE.MeshBasicMaterial({
-                map:  temporaryLayer.texture,
+                // map:  temporaryLayer.texture,
                 side: THREE.FrontSide,
                 transparent:true,
                 // depthTest:false,
@@ -275,22 +331,24 @@ const drawEngine = (assets) => {
             renderer.render(sceneCursor,camera)
         }
 
-
         const renderMove = () => {
             renderer.autoClear = false
         
             renderer.setRenderTarget(temporaryLayer)
             renderer.clearDepth()
             renderer.render(scene,camera)
+
+            console.log('temp',temporaryLayer.texture)
         
             renderer.setRenderTarget(null)
 
+            // renderer.clear()
             quad.render(renderer) // что бы видеть прошлое что нарисовали 
             quad2.render(renderer)
 
             renderer.autoClear = true
 
-            tempResulpPlane.visible = true
+            // tempResulpPlane.visible = true
 
             pointerCount = 0 // clear integrate instancedMeshs index
         }
@@ -301,20 +359,25 @@ const drawEngine = (assets) => {
             renderer.setRenderTarget(rt)
             renderer.clearDepth()
             quad2.render(renderer)
-
+            // renderer.render(scene,camera)
+            console.log('rt',rt.texture)
+            
             renderer.autoClear = true
         
             renderer.setRenderTarget(null)
+            // renderer.render(scene,camera)
             quad.render(renderer)
 
-            tempResulpPlane.visible = false
+            // quad3.render(renderer)
+
+            // tempResulpPlane.visible = false
             // resultPlane.visible = true
 
         }
 
         const setCleanScreen = () => {
             renderer.setRenderTarget(rt)
-            renderer.setClearColor(0x000000, 0)
+            renderer.setClearColor(0xffffff, 0)
             renderer.clearColor()
             renderer.setRenderTarget(null)
             renderUp()
@@ -322,7 +385,7 @@ const drawEngine = (assets) => {
 
         const setClearTempLayer = () => {
             renderer.setRenderTarget(temporaryLayer)
-            renderer.setClearColor(new THREE.Color(0x000000), 0)
+            renderer.setClearColor(new THREE.Color('black'), 0)
             renderer.clearColor()
             renderer.setRenderTarget(null)
         }
@@ -374,7 +437,6 @@ const drawEngine = (assets) => {
         }
 
         const move = (event) => {
-
 
             if (!viewMode){
                 // const wp = drag(event, rootElement)
@@ -457,8 +519,9 @@ const drawEngine = (assets) => {
         
     // --------------------------------------------------- Init ---------------------------------------------------
         // setClearTempLayer()
+        // setCleanScreen()
         renderer.setRenderTarget(rt)
-        renderer.setClearColor(new THREE.Color(0x000000), 0)
+        renderer.setClearColor(new THREE.Color('white'), 0)
         renderer.clearColor()
         renderer.setRenderTarget(null)
         renderUp() 
@@ -469,7 +532,7 @@ const drawEngine = (assets) => {
         window.addEventListener('pointerup', (event) => up(event))
 
     // --------------------------------------------------- GUI ---------------------------------------------------
-    
+    {
         const params = {
             'Brush Color': circle.material.color.getHex(),
             'Clean Screen': setCleanScreen,
@@ -485,11 +548,11 @@ const drawEngine = (assets) => {
 
         gui.add(params,'Clean Screen')
 
-        gui.addColor(params,'Brush Color')
-        .onChange((color) => {
-            circle.material.color.setHex( color )
-            brushMesh.material.color.setHex( color )
-        })
+        // gui.addColor(params,'Brush Color')
+        // .onChange((color) => {
+        //     circle.material.color.setHex( color )
+        //     brushMesh.material.color.setHex( color )
+        // })
 
 		gui.add( params, 'Textures', [
             'clear',
@@ -521,8 +584,9 @@ const drawEngine = (assets) => {
 		gui.add( params, 'Opacity', 0, 1, 0.01 )
 		.onChange( ( v ) => {
             quad2.material.opacity = v
-            tempResulpPlane.material.opacity=v
-            brushMesh.material.opacity = v
+            // circle.material.opacity = v
+            // tempResulpPlane.material.opacity=v
+            // brushMesh.material.opacity = v
 		})    
 
         gui.add( params, 'Brush size', 10, 60, 1 )
@@ -637,7 +701,7 @@ const drawEngine = (assets) => {
                     const w = h * cameraP.aspect
                     const buff = [...resultPlane.geometry.getAttribute('position').array]
                     const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
-                    const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
+                    // const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
                     // resultPlane.translateZ(-z)
                     // resultPlane.scale.set(w/fw,h/fh,h/fh) //.scale.set(w/fw,h/fh,1)
                     // tempResulpPlane.scale.set(w/fw,h/fh,h/fh)
@@ -669,7 +733,7 @@ const drawEngine = (assets) => {
 		})
 
 
-
+    }
 
     // --------------------------------------------------- Animation ---------------------------------------------------
 
@@ -692,10 +756,10 @@ const drawEngine = (assets) => {
         // box2.rotation.x -= 0.01
         // box2.rotation.y -= 0.01
 
-        renderer.render(sceneP,cameraP)
+        // renderer.render(sceneP,cameraP)
         // if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
         if (viewMode) controls.update()
-        if (!viewMode) renderCursor()
+        // if (!viewMode) renderCursor()
         stats.end()
 
         requestAnimationFrame (animation)
