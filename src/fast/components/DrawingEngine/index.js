@@ -52,8 +52,8 @@ class DrawingEngine {
 
 
             side:THREE.FrontSide,
-            depthWrite:false,
-            depthTest:false
+            // depthWrite:false,
+            // depthTest:false
         }))
 
         this.drawScene = new THREE.Scene()
@@ -76,7 +76,7 @@ class DrawingEngine {
                 depthTest:false, 
                 depthWrite:false,
                 alphaTest:0,
-                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] 
+                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] 
             }),
             this.count
         )
@@ -87,7 +87,7 @@ class DrawingEngine {
         this.brushMesh = new THREE.Mesh(
             new THREE.PlaneGeometry(this.core.startDim,this.core.startDim), 
             new THREE.MeshBasicMaterial({
-                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] ,
+                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] ,
                 transparent: true
             })
         )
@@ -110,10 +110,10 @@ class DrawingEngine {
     }
     down(event) {
 
-        if (!this.viewMode){
+        if (!this.core.viewMode){
             this.core.paint = true
 
-
+            this.setClearTempLayer()
 
             this.pointer.x = ( event.clientX / this.core.rootElement.clientWidth) * 2 - 1
             this.pointer.y = 1 - ( event.clientY / this.core.rootElement.clientHeight ) * 2
@@ -229,10 +229,7 @@ class DrawingEngine {
         
         this.core.renderer.setRenderTarget(this.rt)
         this.core.renderer.clearDepth()
-        // console.log(this.core.params)
 
-        // this.quad.material.opacity = 1.0
-        // this.quad.material.needsUpdate = true
         this.quad.render(this.core.renderer)
 
 

@@ -39,7 +39,7 @@ class Core {
             canvas:this.canvas,
             antialias:false,
             alpha:true,
-            premultipliedAlpha: false
+            // premultipliedAlpha: false
         })
         this.renderer.setSize(this.w, this.h)
         this.renderer.setPixelRatio(window.devicePixelRatio)
@@ -63,7 +63,7 @@ class Core {
             'Clean Screen': () => {
                 this.drawingEngine.setCleanScreen()
             },
-            'Textures': 'brush_1',
+            'Textures': 'brush_18',
             'Opacity': 1.0,
             'Brush size': this.startDim,
             'Mode': 'Drawing',
@@ -337,7 +337,10 @@ class Core {
                 'brush_12',
                 'brush_13',
                 'brush_14',
-                'brush_15'
+                'brush_15',
+                'brush_16',
+                'brush_17',
+                'brush_18',
             ])
             .onChange( ( v ) => {
                 const texture = (v === 'clear') ? null : this.assets[this.assets.findIndex( texture => texture.name === v)]
@@ -500,6 +503,7 @@ class Core {
     
                     
                 }
+
                 this.controls.enabled = this.viewMode
             })
     

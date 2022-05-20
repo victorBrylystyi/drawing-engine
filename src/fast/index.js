@@ -25,6 +25,10 @@ class App {
             './assets/brush_13.png',
             './assets/brush_14.png',
             './assets/brush_15.png',
+            './assets/brush_16.png',
+            './assets/brush_17.png',
+            './assets/brush_18.png',
+            './assets/mouse.png',
         ]
         this.assets = []
         this.count = 0
