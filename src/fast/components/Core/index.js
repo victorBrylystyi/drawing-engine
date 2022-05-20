@@ -153,8 +153,8 @@ class Core {
                 // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
 
                 transparent:true,
-                depthWrite:false,
-                depthTest:false,
+                // depthWrite:false,
+                // depthTest:false,
     
             })
         )
