@@ -37,16 +37,20 @@ class DrawingEngine {
         this.quad = new FullScreenQuad(new THREE.MeshBasicMaterial({
             map: this.temporaryLayer.texture, 
             transparent:true,
-            // opacity:1.0,
 
             // blending:THREE.CustomBlending,
 
-            // blendDst: THREE.OneFactor,
-            // blendDstAlpha: THREE.OneFactor,
-            // blendSrc: THREE.OneMinusDstAlphaFactor, 
-            // blendSrcAlpha: THREE.OneFactor, 
+            // blendSrc:THREE.OneFactor,        
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
 
-            // toneMapped:false,
+            // blendSrc:THREE.SrcAlphaFactor,        // one of true variant
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+
             side:THREE.FrontSide,
             depthWrite:false,
             depthTest:false
@@ -70,6 +74,7 @@ class DrawingEngine {
             new THREE.MeshBasicMaterial({
                 transparent:true,
                 depthTest:false, 
+                depthWrite:false,
                 alphaTest:0,
                 map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] 
             }),
@@ -91,7 +96,7 @@ class DrawingEngine {
     }
     setCleanScreen(){
         this.core.renderer.setRenderTarget(this.rt)
-        this.core.renderer.setClearColor(new THREE.Color(0xffffff), 0)
+        this.core.renderer.setClearColor(new THREE.Color(0x000000), 0)
         this.core.renderer.clearColor()
         this.core.renderer.setRenderTarget(null)
         this.renderUp()
@@ -99,7 +104,7 @@ class DrawingEngine {
 
     setClearTempLayer(){
         this.core.renderer.setRenderTarget(this.temporaryLayer)
-        this.core.renderer.setClearColor(new THREE.Color(0xffffff), 0)
+        this.core.renderer.setClearColor(new THREE.Color(0x000000), 0)
         this.core.renderer.clearColor()
         this.core.renderer.setRenderTarget(null)
     }
@@ -108,7 +113,7 @@ class DrawingEngine {
         if (!this.viewMode){
             this.core.paint = true
 
-            this.setClearTempLayer()
+
 
             this.pointer.x = ( event.clientX / this.core.rootElement.clientWidth) * 2 - 1
             this.pointer.y = 1 - ( event.clientY / this.core.rootElement.clientHeight ) * 2
@@ -216,6 +221,7 @@ class DrawingEngine {
         this.core.shouldDraw = false
         
         this.renderUp()
+        this.setClearTempLayer()
     }
 
     renderUp(){
@@ -225,14 +231,17 @@ class DrawingEngine {
         this.core.renderer.clearDepth()
         // console.log(this.core.params)
 
+        // this.quad.material.opacity = 1.0
+        // this.quad.material.needsUpdate = true
         this.quad.render(this.core.renderer)
+
 
         this.core.renderer.autoClear = true
     
         this.core.renderer.setRenderTarget(null)
         // quad.render(renderer)
 
-        this.core.tempResulpPlane.visible = false
+        // this.core.tempResulpPlane.visible = false
         // this.core.resultPlane.visible = true
         // resultPlane.visible = true
     }
@@ -250,7 +259,7 @@ class DrawingEngine {
 
         this.core.renderer.autoClear = true
 
-        this.core.tempResulpPlane.visible = true
+        // this.core.tempResulpPlane.visible = true
         // this.core.resultPlane.visible = false
 
         this.pointerCount = 0 // clear integrate instancedMeshs index

@@ -1,11 +1,12 @@
 
 import * as THREE from 'three'
-import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass'
+import { FullScreenQuad, Pass } from 'three/examples/jsm/postprocessing/Pass'
 import { drag } from './utils'
 import { lerp, DEG2RAD } from 'three/src/math/MathUtils'
 import { GUI } from 'dat.gui'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
+import { CustomBlending } from 'three'
 
 const drawEngine = (assets) => {
 
@@ -17,6 +18,7 @@ const drawEngine = (assets) => {
         let shouldDraw = false
         let startDim = 50
         let viewMode = false
+
         const paramsCircle = {
             'Brush size': 1,
             'Rotation': 0,
@@ -49,7 +51,7 @@ const drawEngine = (assets) => {
         const renderer = new THREE.WebGLRenderer({
             canvas, 
             antialias:true, 
-            logarithmicDepthBuffer:true,
+            // logarithmicDepthBuffer:true,
             alpha:true,
             // premultipliedAlpha:false
         })
@@ -61,7 +63,7 @@ const drawEngine = (assets) => {
             minFilter: THREE.NearestFilter, 
             magFilter: THREE.NearestFilter,
             generateMipmaps: false, 
-            // anisotropy: 4,
+            // // anisotropy: 4,
         })
 
         const temporaryLayer = new THREE.WebGLRenderTarget(w,h,{
@@ -97,53 +99,63 @@ const drawEngine = (assets) => {
             map: rt.texture, 
             transparent:true,           
             side:THREE.FrontSide,
-            // blending:THREE.NoBlending,
-            // blending:THREE.CustomBlending,
-            // blendDst:THREE.OneFactor,
-            // blending:THREE.CustomBlending,
-            // blendDst:THREE.OneFactor,
-            // blending:THREE.CustomBlending,
-            // // blendSrc:THREE.OneMinusDstAlphaFactor,
-            // blendSrc:THREE.SrcAlphaFactor,
-            // blendDst:THREE.OneMinusSrcAlphaFactor,
-            // blendDst:THREE.OneFactor,
-            // blendDstAlpha:THREE.OneFactor,
-            // blendSrcAlpha:THREE.OneFactor,
-            // blending:THREE.CustomBlending,
-            // blendSrc:THREE.SrcAlphaFactor,
-            // blendDst:THREE.OneFactor,
-            // blending:THREE.CustomBlending,
-            // blendDst:THREE.OneMinusSrcAlphaFactor,
-            // blendSrc:THREE.OneMinusDstAlphaFactor,
-
             depthTest:false, 
-            depthWrite:false 
+            depthWrite:false,
+
+            // blending:THREE.CustomBlending,
+            // blendSrc:THREE.ZeroFactor,
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+            // blendDst:THREE.OneFactor,
+
+            // // blendSrcAlpha:THREE.OneFactor,
+            // blendDstAlpha:THREE.ZeroFactor,
+            // blending:THREE.CustomBlending,
+
+            // blendSrc:THREE.OneFactor,
+            // blendDst:THREE.ZeroCurvatureEnding,
+            // blendSrcAlpha:THREE.SrcAlphaFactor,
+            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor
+
+        }))
+        const quad3 = new FullScreenQuad(new THREE.MeshBasicMaterial({
+            map: temporaryLayer.texture, 
+            transparent:true, 
+            side:THREE.FrontSide,
+            depthTest:false, 
+            depthWrite:false,
+            // blending:THREE.CustomBlending,
+
+            // blendSrc:THREE.OneFactor,
+            // blendDst:THREE.OneMinusSrcAlphaFactor,
+            // blendSrcAlpha:THREE.SrcAlphaFactor,
+            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor
+
         }))
         const quad2 = new FullScreenQuad(new THREE.MeshBasicMaterial({
             map: temporaryLayer.texture, 
             transparent:true, 
-            blending:THREE.CustomBlending,
-            // blendSrc:THREE.OneMinusSrcAlphaFactor,
-            // blendSrc:THREE.SrcAlphaFactor,
-            blendDst:THREE.OneFactor,
-            // blendDstAlpha:THREE.OneFactor,
-            // blendSrcAlpha:THREE.OneFactor,
+            side:THREE.FrontSide,
+            depthTest:false, 
+            depthWrite:false,
 
-            // blending:THREE.CustomBlending,
-            // blendDst:THREE.OneMinusSrcAlphaFactor,
-            // blendSrc:THREE.OneFactor,
-            // blending:THREE.NoBlending,
-            side:THREE.FrontSide,
-            depthTest:false, 
-            depthWrite:false
+            blending:THREE.CustomBlending,
+
+            blendSrc:THREE.SrcAlphaFactor,
+            blendDst:THREE.OneMinusSrcAlphaFactor,
+            blendSrcAlpha:THREE.OneFactor,
+            blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+            // blendSrc:THREE.SrcAlphaFactor,
+            // blendDst:THREE.OneFactor,
+            // blendSrcAlpha:THREE.OneFactor,
+            // blendDstAlpha:THREE.OneFactor
+
         }))
-        const quad3 = new FullScreenQuad(new THREE.MeshBasicMaterial({
-            map: rt3.texture, 
-            transparent:true, 
-            side:THREE.FrontSide,
-            depthTest:false, 
-            depthWrite:false
-        }))
+        const pass = new Pass()
+
 
         quad._mesh.position.z = 1
         // quad2._mesh.position.z = 1
@@ -182,7 +194,8 @@ const drawEngine = (assets) => {
             // new THREE.CircleGeometry(r, 64),
             new THREE.PlaneGeometry(startDim,startDim),
             new THREE.MeshBasicMaterial({
-                transparent:true,
+                transparent:false,
+                color:'red',
                 side:THREE.FrontSide,
                 // color:'red'
                 // blendEquation:THREE.NoBlending,
@@ -338,7 +351,7 @@ const drawEngine = (assets) => {
             renderer.clearDepth()
             renderer.render(scene,camera)
 
-            console.log('temp',temporaryLayer.texture)
+            // console.log('temp',temporaryLayer.texture)
         
             renderer.setRenderTarget(null)
 
@@ -357,15 +370,17 @@ const drawEngine = (assets) => {
             renderer.autoClear = false
         
             renderer.setRenderTarget(rt)
-            renderer.clearDepth()
+            // renderer.clearDepth()
             quad2.render(renderer)
+
             // renderer.render(scene,camera)
-            console.log('rt',rt.texture)
+            // console.log('rt',rt.texture)
             
             renderer.autoClear = true
         
             renderer.setRenderTarget(null)
             // renderer.render(scene,camera)
+            // pass.render(renderer,rt,temporaryLayer,0.1)
             quad.render(renderer)
 
             // quad3.render(renderer)
@@ -377,7 +392,7 @@ const drawEngine = (assets) => {
 
         const setCleanScreen = () => {
             renderer.setRenderTarget(rt)
-            renderer.setClearColor(0xffffff, 0)
+            renderer.setClearColor(0x000000, 0)
             renderer.clearColor()
             renderer.setRenderTarget(null)
             renderUp()
@@ -385,7 +400,7 @@ const drawEngine = (assets) => {
 
         const setClearTempLayer = () => {
             renderer.setRenderTarget(temporaryLayer)
-            renderer.setClearColor(new THREE.Color('black'), 0)
+            renderer.setClearColor(new THREE.Color(0x000000), 0)
             renderer.clearColor()
             renderer.setRenderTarget(null)
         }
@@ -514,6 +529,7 @@ const drawEngine = (assets) => {
             shouldDraw = false
 
             renderUp()
+            // setClearTempLayer()
 
         }
         
@@ -521,7 +537,7 @@ const drawEngine = (assets) => {
         // setClearTempLayer()
         // setCleanScreen()
         renderer.setRenderTarget(rt)
-        renderer.setClearColor(new THREE.Color('white'), 0)
+        renderer.setClearColor(new THREE.Color(0xffffff), 0)
         renderer.clearColor()
         renderer.setRenderTarget(null)
         renderUp() 
@@ -543,8 +559,8 @@ const drawEngine = (assets) => {
             'Scene color':  sceneP.background.getHex()
         }
 
-        circle.material.map = assets[assets.findIndex( texture => texture.name === params['Textures'])]
-        circle.material.needsUpdate = true
+        // circle.material.map = assets[assets.findIndex( texture => texture.name === params['Textures'])]
+        // circle.material.needsUpdate = true
 
         gui.add(params,'Clean Screen')
 
@@ -581,9 +597,10 @@ const drawEngine = (assets) => {
             brushMesh.material.needsUpdate = true
 		})
 
-		gui.add( params, 'Opacity', 0, 1, 0.01 )
+		gui.add( params, 'Opacity', 0, 1, 0.1 )
 		.onChange( ( v ) => {
-            quad2.material.opacity = v
+            quad2.material.opacity = v 
+            quad3.material.opacity = v
             // circle.material.opacity = v
             // tempResulpPlane.material.opacity=v
             // brushMesh.material.opacity = v
@@ -750,15 +767,15 @@ const drawEngine = (assets) => {
             } 
         }
 
-        box1.rotation.x += 0.01
-        box1.rotation.y += 0.01
+        // box1.rotation.x += 0.01
+        // box1.rotation.y += 0.01
 
         // box2.rotation.x -= 0.01
         // box2.rotation.y -= 0.01
 
         // renderer.render(sceneP,cameraP)
         // if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
-        if (viewMode) controls.update()
+        // if (viewMode) controls.update()
         // if (!viewMode) renderCursor()
         stats.end()
 

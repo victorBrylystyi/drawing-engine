@@ -38,7 +38,7 @@ class Core {
 
             canvas:this.canvas,
             antialias:false,
-            // alpha:true,
+            alpha:true,
             premultipliedAlpha: false
         })
         this.renderer.setSize(this.w, this.h)
@@ -58,71 +58,112 @@ class Core {
 
         this.drawingEngine = new DrawingEngine(assets,this)
 
+        this.params = {
+            'Brush Color': this.drawingEngine.circle.material.color.getHex(),
+            'Clean Screen': () => {
+                this.drawingEngine.setCleanScreen()
+            },
+            'Textures': 'brush_1',
+            'Opacity': 1.0,
+            'Brush size': this.startDim,
+            'Mode': 'Drawing',
+            'Scene color':  this.scene.background.getHex()
+        }
+
         this.resultPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(1,1), 
-            new THREE.ShaderMaterial({
-                transparent:true,
-                uniforms:{
-                    mainLayer: { value: this.drawingEngine.rt.texture },
-                    tempLayer: { value: this.drawingEngine.quad.material.map },
-                },
-                vertexShader:`
-
-                    varying vec2 vUv;
-
-                    void main(){
-                        vUv = uv;
-                        vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-                        gl_Position = projectionMatrix * mvPosition;
-
-                    }
-                `,
-                fragmentShader:`
-                    varying vec2 vUv;
-                    uniform sampler2D mainLayer;
-                    uniform sampler2D tempLayer;
-
-
-                    void main( void ) {
-
-                        vec4 color1 = texture2D(mainLayer, vUv);
-                        vec4 color2 = texture2D(tempLayer, vUv);
-
-                        // vec3 a = color1.rgb * color1.a + color2.rgb * (color2.a);
-                        // // a *= color2.a;
-
-                        // vec4 color = vec4 (color1.rgb+color2.rgb, color1.a+color2.a);
-
-                        // // vec4 color = vec4((color1.rgb * color1.a) + color2.rgb ,1.0)
-                        
-                        // gl_FragColor = vec4( ((color1.rgb * vec3(0.95)) + color1.rgb),color1.a);
-                        // // gl_FragColor = vec4(clamp((color1.rgb * vec3(0.95))+color1.rgb, 0.0,1.0), color1.a);
-
-                        gl_FragColor = color1;
-                    }
-                `
-            })
-            // new THREE.MeshBasicMaterial({
-            //     map:  this.drawingEngine.rt.texture, 
-            //     side: THREE.FrontSide,
-            //     // blending:THREE.CustomBlending,
-            //     // blending:THREE.CustomBlending,
-
-            //     // blendDst: THREE.OneMinusSrcAlphaFactor,
-            //     // blendDstAlpha: THREE.OneFactor,
-            //     // blendSrc: THREE.OneFactor, 
-            //     // blendSrcAlpha: THREE.OneFactor, 
-
+            // new THREE.ShaderMaterial({
             //     transparent:true,
-            //     depthWrite:false,
-            //     depthTest:false,
-    
+
+            //     // blending:THREE.NoBlending,
+            //     // blending:THREE.CustomBlending,
+            //     // blendEquation:THREE.AddEquation,
+
+            //     // blendDst: null,
+            //     // blendDstAlpha: null,
+            //     // blendSrc: null,
+            //     // blendSrcAlpha:null, 
+
+            //     uniforms:{
+            //         mainLayer: { value: this.drawingEngine.rt.texture },
+            //         tempLayer: { value: this.drawingEngine.quad.material.map },
+            //         o:{value:this.params['Opacity']}
+            //     },
+            //     vertexShader:`
+
+            //         varying vec2 vUv;
+
+            //         void main(){
+            //             vUv = uv;
+            //             vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+            //             gl_Position = projectionMatrix * mvPosition;
+
+            //         }
+            //     `,
+            //     fragmentShader:`
+            //         varying vec2 vUv;
+            //         uniform sampler2D mainLayer;
+            //         uniform sampler2D tempLayer;
+            //         uniform float o;
+
+
+            //         void main( void ) {
+
+            //             vec4 color1 = texture2D(mainLayer, vUv);
+            //             vec4 color2 = texture2D(tempLayer, vUv);
+
+            //             // vec3 a = color1.rgb * color1.a + color2.rgb * (color2.a);
+            //             // // a *= color2.a;
+
+            //             // vec4 color = vec4 (color1.rgb+color2.rgb, color1.a+color2.a);
+
+            //             // // vec4 color = vec4((color1.rgb * color1.a) + color2.rgb ,1.0)
+                        
+            //             // gl_FragColor = vec4( ((color1.rgb * vec3(0.95)) + color1.rgb),color1.a);
+            //             // // gl_FragColor = vec4(clamp((color1.rgb * vec3(0.95))+color1.rgb, 0.0,1.0), color1.a);
+
+            //             // gl_FragColor = vec4(color1.rgb * vec3(o), 1.0);
+            //             // gl_FragColor = vec4(color1.rgb, 0.0);
+            //             float c = 0.0;
+            //             if (color1.a > 0.0){
+            //                 c =  (1.0 - o)*color2.a;
+            //             } else {
+            //                 c = color1.a;
+            //             }
+            //             gl_FragColor = color1;
+            //         }
+            //     `
             // })
+            new THREE.MeshBasicMaterial({
+                map:  this.drawingEngine.rt.texture, 
+                side: THREE.FrontSide,
+
+
+            blending:THREE.CustomBlending,
+
+            blendSrc:THREE.OneFactor,        
+            blendDst:THREE.OneMinusSrcAlphaFactor,
+            blendSrcAlpha:THREE.OneFactor,
+            blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+                // blending:THREE.CustomBlending,
+                // blendSrc:THREE.OneFactor,
+                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrcAlpha:THREE.OneFactor,
+                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+                transparent:true,
+                depthWrite:false,
+                depthTest:false,
+    
+            })
         )
         this.resultPlane.name = 'layer'
+        // this.resultPlane.renderOrder = 999
 
         this.box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
         this.box1.position.set(0,0,0)
+        // this.box1.renderOrder = -999
 
         this.scene.add(this.box1)
         this.scene.add(this.resultPlane)
@@ -196,7 +237,7 @@ class Core {
         this.tempResulpPlane.geometry.attributes.position.copy(this.resultPlane.geometry.attributes.position)
         this.resultPlane.geometry.attributes.position.needsUpdate = true
         this.tempResulpPlane.material.needsUpdate = true
-        this.tempResulpPlane.visible = false
+        // this.tempResulpPlane.visible = false
         this.scene.add(this.tempResulpPlane)
         // console.log(tempResulpPlane,sceneP)
 
@@ -268,17 +309,6 @@ class Core {
         
     }
     addGui(){
-            this.params = {
-                'Brush Color': this.drawingEngine.circle.material.color.getHex(),
-                'Clean Screen': ()=>{
-                    this.drawingEngine.setCleanScreen()
-                },
-                'Textures': 'brush_1',
-                'Opacity': 1,
-                'Brush size': this.startDim,
-                'Mode': 'Drawing',
-                'Scene color':  this.scene.background.getHex()
-            }
     
             this.drawingEngine.circle.material.map = this.assets[this.assets.findIndex( texture => texture.name === this.params['Textures'])]
             this.drawingEngine.circle.material.needsUpdate = true
@@ -318,9 +348,11 @@ class Core {
                 this.drawingEngine.brushMesh.material.needsUpdate = true
             })
     
-            this.gui.add( this.params, 'Opacity', 0, 1, 0.01 )
+            this.gui.add( this.params, 'Opacity', 0, 1, 0.1 )
             .onChange( ( v ) => {
-                
+                // console.log(this.resultPlane.material.uniforms.o)
+                // this.resultPlane.material.uniforms.o.value = v
+                // this.resultPlane.material.uniformsNeedUpdate = true
                 this.drawingEngine.quad.material.opacity = v
                 // this.tempResulpPlane.material.opacity = v
                 // this.resultPlane
