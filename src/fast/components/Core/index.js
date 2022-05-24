@@ -17,9 +17,18 @@ class Core {
         this.gui = new GUI()
         this.viewMode = false
         this.assets = assets
+        this.sett = {
+            pressureBleed: 0.5,
+            pressure:1,
+            pressureOpacity:1.0,
+            nodeOpacityScale:1.0,
+            tilt:0.0,
+            tiltOpacity:1.0,
+        }
         this.init(assets)
         this.addGui()
         this.render()
+
     }
     init(assets){
 
@@ -378,6 +387,40 @@ class Core {
                 // this.drawingEngine.circle.material.uniformsNeedUpdate = true
                 // this.drawingEngine.brushMesh.material.needsUpdate = true
             })
+
+            const pr = this.gui.addFolder('Pressure sett')
+            // pressureBleed: 0.5,
+            // pressure:1
+            // pressureOpacity:{value:1.0},
+            // nodeOpacityScale:{value:1.0},
+            // tilt:{value:90.0},
+            // tiltOpacity:{value:1.0}
+            console.log(this.sett)
+            pr.add( this.sett, 'pressureBleed',0,1,0.01)
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.pressureBleed.value = v
+            })    
+            pr.add( this.sett, 'pressure', 0, 1, 0.01 )
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.pressure.value = v
+            })    
+            pr.add( this.sett, 'pressureOpacity', 0, 1, 0.01 )
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.pressureOpacity.value = v
+            })    
+            pr.add( this.sett, 'nodeOpacityScale', 0, 1, 0.01 )
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
+            })    
+            pr.add( this.sett, 'tilt', 0, 90, 0.01 )
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.tilt.value = v
+            })    
+            pr.add( this.sett, 'tiltOpacity', 0, 1, 0.01 )
+            .onChange( ( v ) => {
+                this.drawingEngine.circle.material.uniforms.tiltOpacity.value = v
+            })    
+
     
             this.gui.add( this.params, 'Opacity', 0, 1, 0.1 )
             .onChange( ( v ) => {

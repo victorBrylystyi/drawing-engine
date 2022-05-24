@@ -90,7 +90,15 @@ class DrawingEngine {
                     canvasSize: { value: new THREE.Vector2(this.core.w, this.core.h) },
                     initialPoint: { value: new THREE.Vector2() },
                     brushSize: { value: this.core.startDim },
-                    mouseOffset: { value: new THREE.Vector2() }
+                    mouseOffset: { value: new THREE.Vector2() },
+                    pressureBleed:{value: 0.5},
+                    pressure:{value: 1.0},
+
+                    pressureOpacity:{value:1.0},
+                    nodeOpacityScale:{value:1.0},
+                    tilt:{value:0.0},
+                    tiltOpacity:{value:1.0}
+
                 },
                 vertexShader:`
     
@@ -125,13 +133,29 @@ class DrawingEngine {
                         uniform float brushSize;
                         uniform vec2 initialPoint;
                         uniform vec2 mouseOffset;
+
+                        uniform float pressure;
+                        uniform float pressureBleed;
+
+                        uniform float pressureOpacity;
+                        uniform float nodeOpacityScale;
+                        uniform float tilt;
+                        uniform float tiltOpacity;
+
     
                         void main( void ) {
                             vec2 brushUV = initialPoint + uvOffset ; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y)
                             vec4 alphaMapColor = texture2D(alphaMap, vUv);
                             vec4 resultColor = texture2D(grainMap, brushUV);
 
-                            gl_FragColor = vec4(resultColor.rgb * color.rgb, alphaMapColor.r);
+                            float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
+
+                            float uOpacity = 1.0 - (1.0 - pressure) * pressureOpacity;
+                            float tiltOp = 1.0 - tilt / 90.0 * tiltOpacity;
+                            uOpacity *= tiltOp * nodeOpacityScale;
+
+                            gl_FragColor = vec4(color.rgb, 1.0);
+                            gl_FragColor *= ((alphaMapColor.r * resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
                         }
                 `
             }),
