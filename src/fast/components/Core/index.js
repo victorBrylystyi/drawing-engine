@@ -58,12 +58,14 @@ class Core {
 
         this.drawingEngine = new DrawingEngine(assets,this)
 
+
         this.params = {
-            'Brush Color': this.drawingEngine.circle.material.color.getHex(),
+            'Brush Color': 0xffffff,
             'Clean Screen': () => {
                 this.drawingEngine.setCleanScreen()
             },
-            'Textures': 'brush_18',
+            'Brush shape': 'brush_1',
+            'Grain': 'grain_1',
             'Opacity': 1.0,
             'Brush size': this.startDim,
             'Mode': 'Drawing',
@@ -205,6 +207,9 @@ class Core {
         this.resultPlane.geometry.attributes.position.setXYZ(1,B.x,B.y,B.z)
         this.resultPlane.geometry.attributes.position.setXYZ(2,C.x,C.y,C.z)
         this.resultPlane.geometry.attributes.position.setXYZ(3,D.x,D.y,D.z)
+        console.log(this.resultPlane.geometry) 
+
+
 
         this.resultPlane.geometry.attributes.position.needsUpdate = true
         // resultPlane.matrixAutoUpdate = true
@@ -310,19 +315,22 @@ class Core {
     }
     addGui(){
     
-            this.drawingEngine.circle.material.map = this.assets[this.assets.findIndex( texture => texture.name === this.params['Textures'])]
-            this.drawingEngine.circle.material.needsUpdate = true
+            // this.drawingEngine.circle.material.alphaMap =  this.assets[this.assets.findIndex( texture => texture.name === this.params['Textures'])]
+            // this.drawingEngine.circle.material.needsUpdate = true
     
             this.gui.add(this.params,'Clean Screen')
     
             this.gui.addColor(this.params,'Brush Color')
-            .onChange((color) => {
-                this.drawingEngine.circle.material.color.setHex( color )
-                this.drawingEngine.brushMesh.material.color.setHex( color )
+            .onChange((c) => {
+                // this.drawingEngine.circle.material.color.setHex( c )
+                const color = new THREE.Color(c)
+                this.drawingEngine.circle.material.uniforms.color.value.set(color.r,color.g,color.b, 1.0)// = new THREE.Vector4(color.r,color.g,color.b, 1.0)
+                // this.drawingEngine.circle.material.uniformsNeedUpdate = true
+                // this.drawingEngine.brushMesh.material.color.setHex( color )
             })
     
-            this.gui.add( this.params, 'Textures', [
-                'clear',
+            this.gui.add( this.params, 'Brush shape', [
+                // 'clear',
                 'brush_1',
                 'brush_2',
                 'brush_3',
@@ -332,23 +340,43 @@ class Core {
                 'brush_7',
                 'brush_8',
                 'brush_9',
-                'brush_10',
-                'brush_11',
-                'brush_12',
-                'brush_13',
-                'brush_14',
-                'brush_15',
-                'brush_16',
-                'brush_17',
-                'brush_18',
             ])
             .onChange( ( v ) => {
-                const texture = (v === 'clear') ? null : this.assets[this.assets.findIndex( texture => texture.name === v)]
-                this.drawingEngine.circle.material.map = texture
-                this.drawingEngine.brushMesh.material.map = texture
+                // const texture = (v === 'clear') ? null : this.assets[this.assets.findIndex( texture => texture.name === v)]
+                const texture = this.assets[this.assets.findIndex( texture => texture.name === v)]
+                // this.drawingEngine.circle.material.map = texture
+                // this.drawingEngine.brushMesh.material.map = texture
                 // this.drawingEngine.circle.material.color = new THREE.Color(0x000000)
-                this.drawingEngine.circle.material.needsUpdate = true
-                this.drawingEngine.brushMesh.material.needsUpdate = true
+
+                this.drawingEngine.circle.material.uniforms.alphaMap.value = texture
+                // this.drawingEngine.circle.material.uniformsNeedUpdate = true
+                // this.drawingEngine.brushMesh.material.needsUpdate = true
+            })
+
+            this.gui.add( this.params, 'Grain', [
+                // 'clear',
+                'grain_1',
+                'grain_2',
+                'grain_3',
+                'grain_4',
+                'grain_5',
+                'grain_6',
+                'grain_7',
+                'grain_8',
+                'uv_grid'
+            ])
+            .onChange( ( v ) => {
+                // const texture = (v === 'clear') ? null : this.assets[this.assets.findIndex( texture => texture.name === v)]
+                const texture = this.assets[this.assets.findIndex( texture => texture.name === v)]
+                // this.drawingEngine.circle.material.map = texture
+                // this.drawingEngine.brushMesh.material.map = texture
+                // this.drawingEngine.circle.material.color = new THREE.Color(0x000000)
+                texture.wrapS = THREE.RepeatWrapping
+                texture.wrapT = THREE.RepeatWrapping
+
+                this.drawingEngine.circle.material.uniforms.grainMap.value = texture
+                // this.drawingEngine.circle.material.uniformsNeedUpdate = true
+                // this.drawingEngine.brushMesh.material.needsUpdate = true
             })
     
             this.gui.add( this.params, 'Opacity', 0, 1, 0.1 )
@@ -369,6 +397,7 @@ class Core {
                 this.drawingEngine.circle.geometry.scale(scale,scale,scale)
                 this.drawingEngine.brushMesh.geometry.scale(scale,scale,scale)
                 this.startDim = newDim
+                this.drawingEngine.circle.material.uniforms.brushSize.value = newDim
             })
     
             this.gui.add( this.drawingEngine.paramsCircle, 'Rotation', -180, 180, 1 )

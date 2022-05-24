@@ -69,14 +69,71 @@ class DrawingEngine {
         this.drawCamera.position.z = 0.01
         this.drawCamera.updateProjectionMatrix()  //!!!! 
 
+        const texture = this.brushes[this.brushes.findIndex( texture => texture.name === 'grain_1')] 
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        // gridTexture.flipY = false
+
         this.circle = new THREE.InstancedMesh(        // brush 
             new THREE.PlaneGeometry(this.core.startDim,this.core.startDim),
-            new THREE.MeshBasicMaterial({
-                transparent:true,
+            new THREE.ShaderMaterial({
+                transparent: true,
                 depthTest:false, 
                 depthWrite:false,
-                alphaTest:0,
-                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] 
+                side:THREE.FrontSide,
+                uniforms:{
+                    color: {
+                        value: new THREE.Vector4(1.0, 1.0, 1.0, 1.0)
+                    },
+                    alphaMap: { value: this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] },
+                    grainMap: { value: texture},
+                    canvasSize: { value: new THREE.Vector2(this.core.w, this.core.h) },
+                    initialPoint: { value: new THREE.Vector2() },
+                    brushSize: { value: this.core.startDim },
+                    mouseOffset: { value: new THREE.Vector2() }
+                },
+                vertexShader:`
+    
+                    varying vec2 vUv;
+                    varying vec2 uvOffset;
+
+                    uniform vec2 canvasSize;
+    
+
+                    void main() {
+                  
+                        vec4 mvPosition = instanceMatrix * vec4( position, 1.0 );
+                  
+                        vec4 modelViewPosition = modelViewMatrix * mvPosition;
+                        gl_Position = projectionMatrix * modelViewPosition;
+                        vUv = uv;
+                        uvOffset = vec2(mvPosition.x / canvasSize.x, mvPosition.y / canvasSize.y);
+
+
+                    }
+                `,
+    
+                fragmentShader:`
+                        varying vec2 vUv;
+                        varying vec2 uvOffset;
+
+                        uniform sampler2D alphaMap;
+                        uniform sampler2D grainMap;
+                        uniform vec4 color;
+
+                        uniform vec2 canvasSize;
+                        uniform float brushSize;
+                        uniform vec2 initialPoint;
+                        uniform vec2 mouseOffset;
+    
+                        void main( void ) {
+                            vec2 brushUV = initialPoint + uvOffset ; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y)
+                            vec4 alphaMapColor = texture2D(alphaMap, vUv);
+                            vec4 resultColor = texture2D(grainMap, brushUV);
+
+                            gl_FragColor = vec4(resultColor.rgb * color.rgb, alphaMapColor.r);
+                        }
+                `
             }),
             this.count
         )
@@ -87,11 +144,11 @@ class DrawingEngine {
         this.brushMesh = new THREE.Mesh(
             new THREE.PlaneGeometry(this.core.startDim,this.core.startDim), 
             new THREE.MeshBasicMaterial({
-                map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] ,
+                // map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] ,
                 transparent: true
             })
         )
-        this.brush.add(this.brushMesh)
+        // this.brush.add(this.brushMesh)
         this.sceneCursor.add(this.brush)
     }
     setCleanScreen(){
@@ -112,6 +169,10 @@ class DrawingEngine {
 
         if (!this.core.viewMode){
             this.core.paint = true
+
+            this.circle.material.uniforms.initialPoint.value = new THREE.Vector2(Math.random(),Math.random())
+            this.circle.material.uniforms.mouseOffset.value = new THREE.Vector2(Math.random(),Math.random())
+            this.circle.material.uniformsNeedUpdate = true
 
             this.setClearTempLayer()
 
@@ -179,6 +240,13 @@ class DrawingEngine {
                     this.currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
 
                     const distance = Math.floor(this.prevMousePosition.distanceTo(this.currentMousePosition))
+
+                    // const mouseOffset = new THREE.Vector2()
+                    // mouseOffset.set(this.currentMousePosition.x - this.prevMousePosition.x,this.currentMousePosition.y - this.prevMousePosition.y)
+                    // const pos = mouseOffset.clone().normalize().addScalar(1).divideScalar(2)
+                    // console.log(pos)
+                    // this.circle.material.uniforms.mouseOffset.value = pos
+                    // this.circle.material.uniformsNeedUpdate = true
 
                     this.circle.count = (distance - 1) + this.pointerCount
 
