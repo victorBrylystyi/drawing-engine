@@ -48,7 +48,7 @@ class Core {
             canvas:this.canvas,
             antialias:false,
             alpha:true,
-            // premultipliedAlpha: false
+            premultipliedAlpha: false
         })
         this.renderer.setSize(this.w, this.h)
         this.renderer.setPixelRatio(window.devicePixelRatio)
@@ -83,94 +83,18 @@ class Core {
 
         this.resultPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(1,1), 
-            // new THREE.ShaderMaterial({
-            //     transparent:true,
-
-            //     // blending:THREE.NoBlending,
-            //     // blending:THREE.CustomBlending,
-            //     // blendEquation:THREE.AddEquation,
-
-            //     // blendDst: null,
-            //     // blendDstAlpha: null,
-            //     // blendSrc: null,
-            //     // blendSrcAlpha:null, 
-
-            //     uniforms:{
-            //         mainLayer: { value: this.drawingEngine.rt.texture },
-            //         tempLayer: { value: this.drawingEngine.quad.material.map },
-            //         o:{value:this.params['Opacity']}
-            //     },
-            //     vertexShader:`
-
-            //         varying vec2 vUv;
-
-            //         void main(){
-            //             vUv = uv;
-            //             vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
-            //             gl_Position = projectionMatrix * mvPosition;
-
-            //         }
-            //     `,
-            //     fragmentShader:`
-            //         varying vec2 vUv;
-            //         uniform sampler2D mainLayer;
-            //         uniform sampler2D tempLayer;
-            //         uniform float o;
-
-
-            //         void main( void ) {
-
-            //             vec4 color1 = texture2D(mainLayer, vUv);
-            //             vec4 color2 = texture2D(tempLayer, vUv);
-
-            //             // vec3 a = color1.rgb * color1.a + color2.rgb * (color2.a);
-            //             // // a *= color2.a;
-
-            //             // vec4 color = vec4 (color1.rgb+color2.rgb, color1.a+color2.a);
-
-            //             // // vec4 color = vec4((color1.rgb * color1.a) + color2.rgb ,1.0)
-                        
-            //             // gl_FragColor = vec4( ((color1.rgb * vec3(0.95)) + color1.rgb),color1.a);
-            //             // // gl_FragColor = vec4(clamp((color1.rgb * vec3(0.95))+color1.rgb, 0.0,1.0), color1.a);
-
-            //             // gl_FragColor = vec4(color1.rgb * vec3(o), 1.0);
-            //             // gl_FragColor = vec4(color1.rgb, 0.0);
-            //             float c = 0.0;
-            //             if (color1.a > 0.0){
-            //                 c =  (1.0 - o)*color2.a;
-            //             } else {
-            //                 c = color1.a;
-            //             }
-            //             gl_FragColor = color1;
-            //         }
-            //     `
-            // })
             new THREE.MeshBasicMaterial({
                 map:  this.drawingEngine.rt.texture, 
                 side: THREE.FrontSide,
-
-
-            blending:THREE.CustomBlending,
-
-            blendSrc:THREE.OneFactor,        
-            blendDst:THREE.OneMinusSrcAlphaFactor,
-            blendSrcAlpha:THREE.OneFactor,
-            blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
-                // blending:THREE.CustomBlending,
-                // blendSrc:THREE.OneFactor,
-                // blendDst:THREE.OneMinusSrcAlphaFactor,
-                // blendSrcAlpha:THREE.OneFactor,
-                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
+                blending:THREE.CustomBlending,
+                blendSrc:THREE.OneFactor,        
+                blendDst:THREE.OneMinusSrcAlphaFactor,
+                blendSrcAlpha:THREE.OneFactor,
+                blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
                 transparent:true,
-                // depthWrite:false,
-                // depthTest:false,
-    
             })
         )
         this.resultPlane.name = 'layer'
-        // this.resultPlane.renderOrder = 999
 
         this.box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
         this.box1.position.set(0,0,0)
@@ -201,72 +125,33 @@ class Core {
         someV.add(directionCamera)
         someV.applyMatrix4(this.camera.matrixWorldInverse).applyMatrix4(this.camera.projectionMatrix) 
 
-        // console.log('someV',someV)
-
-        // console.log(cameraP.projectionMatrixInverse)
-
         A.applyMatrix4(this.camera.projectionMatrixInverse).applyMatrix4(this.camera.matrixWorld)
         B.applyMatrix4(this.camera.projectionMatrixInverse).applyMatrix4(this.camera.matrixWorld)
         C.applyMatrix4(this.camera.projectionMatrixInverse).applyMatrix4(this.camera.matrixWorld)
         D.applyMatrix4(this.camera.projectionMatrixInverse).applyMatrix4(this.camera.matrixWorld)
 
-        // console.log(A,B,C,D)
-
         this.resultPlane.geometry.attributes.position.setXYZ(0,A.x,A.y,A.z)
         this.resultPlane.geometry.attributes.position.setXYZ(1,B.x,B.y,B.z)
         this.resultPlane.geometry.attributes.position.setXYZ(2,C.x,C.y,C.z)
         this.resultPlane.geometry.attributes.position.setXYZ(3,D.x,D.y,D.z)
-        console.log(this.resultPlane.geometry) 
-
-
 
         this.resultPlane.geometry.attributes.position.needsUpdate = true
-        // resultPlane.matrixAutoUpdate = true
+
 
         this.tempResulpPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(2,1), 
             this.drawingEngine.quad.material // use quad 
-            // new THREE.MeshBasicMaterial({
-            //     map: this.drawingEngine.temporaryLayer.texture,
-            //     // blending:THREE.NoBlending,
-            //     side: THREE.FrontSide,
-            //     transparent:true,
-
-            //     depthWrite:false,
-            //     depthTest:false,
-            //     // blending:THREE.CustomBlending,
-
-            //     // blendDst: THREE.OneMinusSrcAlphaFactor,
-            //     // blendDstAlpha: THREE.OneFactor,
-            //     // blendSrc: THREE.OneFactor, 
-            //     // blendSrcAlpha: THREE.OneFactor, 
-            //     // // color:'red'
-            //     // depthTest:false,
-            //     // depthWrite:false,
-            //     // opacity:1
-
-            // })
         )
+
         this.tempResulpPlane.name='tempLayer'
         this.tempResulpPlane.geometry.attributes.position.copy(this.resultPlane.geometry.attributes.position)
         this.resultPlane.geometry.attributes.position.needsUpdate = true
         this.tempResulpPlane.material.needsUpdate = true
-        // this.tempResulpPlane.visible = false
-        this.scene.add(this.tempResulpPlane)
-        // console.log(tempResulpPlane,sceneP)
 
+        this.scene.add(this.tempResulpPlane)
 
         this.resultPlane.geometry.attributes.position.needsUpdate = true
         this.tempResulpPlane.geometry.attributes.position.needsUpdate = true
-
-        // this.drawingEngine = new DrawingEngine(assets,this)
-
-        // this.resultPlane.material.map = this.drawingEngine.rt.texture
-        // this.tempResulpPlane.material.map = this.drawingEngine.temporaryLayer.texture
-
-        // this.resultPlane.material.needsUpdate = true
-        // this.tempResulpPlane.material.needsUpdate = true
-
 
         this.renderer.setRenderTarget(this.drawingEngine.rt)
         this.renderer.setClearColor(new THREE.Color(0x000000), 0)
@@ -274,17 +159,13 @@ class Core {
         this.renderer.setRenderTarget(null)
         this.drawingEngine.renderUp() 
 
-        // window.addEventListener('resize', () => resize())
         window.addEventListener('pointerdown', (event) => this.drawingEngine.down(event))
         window.addEventListener('pointermove', (event) => this.drawingEngine.move(event))
         window.addEventListener('pointerup', (event) => this.drawingEngine.up(event))
 
         const loader = new THREE.ObjectLoader()
-
         const cameraPDef = this.camera.toJSON()
-
         this.parseCamera = loader.parse(cameraPDef)
-
 
     }
     setCameraToDef(){
@@ -305,9 +186,6 @@ class Core {
         this.box1.rotation.x += 0.01
         this.box1.rotation.y += 0.01
 
-        // box2.rotation.x -= 0.01
-        // box2.rotation.y -= 0.01
-
         this.renderer.render(this.scene,this.camera)
         // if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
         if (this.viewMode) this.controls.update()
@@ -324,14 +202,10 @@ class Core {
     }
     addGui(){
     
-            // this.drawingEngine.circle.material.alphaMap =  this.assets[this.assets.findIndex( texture => texture.name === this.params['Textures'])]
-            // this.drawingEngine.circle.material.needsUpdate = true
-    
             this.gui.add(this.params,'Clean Screen')
     
             this.gui.addColor(this.params,'Brush Color')
             .onChange((c) => {
-                // this.drawingEngine.circle.material.color.setHex( c )
                 const color = new THREE.Color(c)
                 this.drawingEngine.circle.material.uniforms.color.value.set(color.r,color.g,color.b, 1.0)// = new THREE.Vector4(color.r,color.g,color.b, 1.0)
                 // this.drawingEngine.circle.material.uniformsNeedUpdate = true
@@ -356,8 +230,9 @@ class Core {
                 // this.drawingEngine.circle.material.map = texture
                 // this.drawingEngine.brushMesh.material.map = texture
                 // this.drawingEngine.circle.material.color = new THREE.Color(0x000000)
-
-                this.drawingEngine.circle.material.uniforms.alphaMap.value = texture
+                texture.wrapS = THREE.RepeatWrapping
+                texture.wrapT = THREE.RepeatWrapping
+                this.drawingEngine.circle.material.uniforms.brushMap.value = texture
                 // this.drawingEngine.circle.material.uniformsNeedUpdate = true
                 // this.drawingEngine.brushMesh.material.needsUpdate = true
             })
@@ -412,7 +287,7 @@ class Core {
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
             })    
-            pr.add( this.sett, 'tilt', 0, 90, 0.01 )
+            pr.add( this.sett, 'tilt', 0, 1, 0.01 )
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.tilt.value = v
             })    

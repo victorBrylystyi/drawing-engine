@@ -40,11 +40,6 @@ class DrawingEngine {
 
             // blending:THREE.CustomBlending,
 
-            // blendSrc:THREE.OneFactor,        
-            // blendDst:THREE.OneMinusSrcAlphaFactor,
-            // blendSrcAlpha:THREE.OneFactor,
-            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
             // blendSrc:THREE.SrcAlphaFactor,        // one of true variant
             // blendDst:THREE.OneMinusSrcAlphaFactor,
             // blendSrcAlpha:THREE.OneFactor,
@@ -52,8 +47,6 @@ class DrawingEngine {
 
 
             side:THREE.FrontSide,
-            // depthWrite:false,
-            // depthTest:false
         }))
 
         this.drawScene = new THREE.Scene()
@@ -76,16 +69,49 @@ class DrawingEngine {
 
         this.circle = new THREE.InstancedMesh(        // brush 
             new THREE.PlaneGeometry(this.core.startDim,this.core.startDim),
+            // new THREE.MeshBasicMaterial({
+            //     blending:THREE.CustomBlending,
+            //     blendSrc:THREE.OneFactor,        
+            //     blendDst:THREE.OneMinusSrcAlphaFactor,
+            //     blendSrcAlpha:THREE.OneFactor,
+            //     blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+            //     transparent:true,
+            //     color:'red',
+            //     map:this.brushes[this.brushes.findIndex( texture => texture.name === 'grain_2')],
+            //     alphaMap:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_2')],
+            // }),
             new THREE.ShaderMaterial({
                 transparent: true,
                 depthTest:false, 
                 depthWrite:false,
                 side:THREE.FrontSide,
+
+                blending:THREE.CustomBlending,
+
+                // blendSrc:THREE.SrcColorFactor,          // def
+                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrcAlpha:THREE.SrcColorFactor,
+                // blendDstAlpha:THREE.OneFactor,
+
+                blendSrc:THREE.OneFactor,         // v1
+                blendDst:THREE.ZeroFactor,
+                blendSrcAlpha:THREE.OneFactor,
+                blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+                // blendSrc:THREE.SrcAlphaFactor,        
+                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrcAlpha:THREE.SrcAlphaFactor,
+                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
+                // blending:THREE.CustomBlending,
+                // blendSrc:THREE.OneFactor,        
+                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrcAlpha:THREE.OneFactor,
+                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
                 uniforms:{
-                    color: {
-                        value: new THREE.Vector4(1.0, 1.0, 1.0, 1.0)
-                    },
-                    alphaMap: { value: this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] },
+                    color: { value: new THREE.Vector4(1.0, 1.0, 1.0, 1.0)},
+                    brushMap: { value: this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] },
                     grainMap: { value: texture},
                     canvasSize: { value: new THREE.Vector2(this.core.w, this.core.h) },
                     initialPoint: { value: new THREE.Vector2() },
@@ -116,8 +142,6 @@ class DrawingEngine {
                         gl_Position = projectionMatrix * modelViewPosition;
                         vUv = uv;
                         uvOffset = vec2(mvPosition.x / canvasSize.x, mvPosition.y / canvasSize.y);
-
-
                     }
                 `,
     
@@ -125,7 +149,7 @@ class DrawingEngine {
                         varying vec2 vUv;
                         varying vec2 uvOffset;
 
-                        uniform sampler2D alphaMap;
+                        uniform sampler2D brushMap;
                         uniform sampler2D grainMap;
                         uniform vec4 color;
 
@@ -144,8 +168,8 @@ class DrawingEngine {
 
     
                         void main( void ) {
-                            vec2 brushUV = initialPoint + uvOffset ; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y)
-                            vec4 alphaMapColor = texture2D(alphaMap, vUv);
+                            vec2 brushUV = initialPoint + uvOffset ;//+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y);
+                            vec4 brushMapColor = texture2D(brushMap, vUv);
                             vec4 resultColor = texture2D(grainMap, brushUV);
 
                             float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
@@ -155,7 +179,16 @@ class DrawingEngine {
                             uOpacity *= tiltOp * nodeOpacityScale;
 
                             gl_FragColor = vec4(color.rgb, 1.0);
-                            gl_FragColor *= ((alphaMapColor.r * resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
+                            // gl_FragColor *= resultColor.r * brushMapColor.r;
+
+                            // gl_FragColor = vec4(color.rgb, brushMapColor.r);
+                            // gl_FragColor.rgb *= ((resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
+
+                            // gl_FragColor = vec4(color.rgb*resultColor.rgb, brushMapColor.r);
+                            // gl_FragColor *= resultColor.r* brushMapColor.r;
+                            // gl_FragColor *= brushMapColor.r ;//vec4(color.rgb, brushMapColor.r );
+                            gl_FragColor *= (( resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
+                            gl_FragColor.a *= brushMapColor.r;
                         }
                 `
             }),
@@ -168,7 +201,6 @@ class DrawingEngine {
         this.brushMesh = new THREE.Mesh(
             new THREE.PlaneGeometry(this.core.startDim,this.core.startDim), 
             new THREE.MeshBasicMaterial({
-                // map:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_18')] ,
                 transparent: true
             })
         )
