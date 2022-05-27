@@ -180,6 +180,7 @@ class Core {
             // shouldDraw ? renderMove() : quad.render(renderer)
             if (this.shouldDraw){
                 this.drawingEngine.renderMove()
+                this.shouldDraw = false
             } 
         }
 
@@ -189,7 +190,7 @@ class Core {
         this.renderer.render(this.scene,this.camera)
         // if (!shouldDraw) renderer.render(sceneP,cameraP) // perspective scene
         if (this.viewMode) this.controls.update()
-        if (!this.viewMode) this.drawingEngine.renderCursor()
+        // if (!this.viewMode) this.drawingEngine.renderCursor()
 
         this.stats.end()
 

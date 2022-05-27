@@ -49,6 +49,7 @@ class DrawingEngine {
             side:THREE.FrontSide,
         }))
 
+
         this.drawScene = new THREE.Scene()
         this.sceneCursor = new THREE.Scene()
 
@@ -85,6 +86,9 @@ class DrawingEngine {
                 depthTest:false, 
                 depthWrite:false,
                 side:THREE.FrontSide,
+                // premultipliedAlpha:true,
+
+                blendEquation: THREE.MaxEquation,
 
                 blending:THREE.CustomBlending,
 
@@ -93,19 +97,13 @@ class DrawingEngine {
                 // blendSrcAlpha:THREE.SrcColorFactor,
                 // blendDstAlpha:THREE.OneFactor,
 
-                blendSrc:THREE.OneFactor,         // v1
-                blendDst:THREE.ZeroFactor,
-                blendSrcAlpha:THREE.OneFactor,
-                blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
-                // blendSrc:THREE.SrcAlphaFactor,        
-                // blendDst:THREE.OneMinusSrcAlphaFactor,
-                // blendSrcAlpha:THREE.SrcAlphaFactor,
+                // blendSrc:THREE.OneFactor,         // v1
+                // blendDst:THREE.ZeroFactor,
+                // blendSrcAlpha:THREE.OneFactor,
                 // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
 
-                // blending:THREE.CustomBlending,
-                // blendSrc:THREE.OneFactor,        
-                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrc:THREE.SrcAlphaFactor,        
+                // blendDst:THREE.OneFactor,
                 // blendSrcAlpha:THREE.OneFactor,
                 // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
 
@@ -178,8 +176,18 @@ class DrawingEngine {
                             float tiltOp = 1.0 - tilt / 90.0 * tiltOpacity;
                             uOpacity *= tiltOp * nodeOpacityScale;
 
-                            gl_FragColor = vec4(color.rgb, 1.0);
-                            // gl_FragColor *= resultColor.r * brushMapColor.r;
+                            gl_FragColor = vec4(color.rgb, brushMapColor.r * resultColor.r);
+                            // gl_FragColor = brushMapColor;
+
+                            // gl_FragColor = vec4(brushMapColor.r,brushMapColor.r,brushMapColor.r,brushMapColor.r);
+
+                            // gl_FragColor = vec4(color.rgb, resultColor.r);
+
+                            // gl_FragColor = vec4(color.rgb, 1.0);
+                            // gl_FragColor *= resultColor.r;
+                            // gl_FragColor *= brushMapColor.r ;
+
+                            // gl_FragColor = vec4(color.rgb, resultColor.r * brushMapColor.r);
 
                             // gl_FragColor = vec4(color.rgb, brushMapColor.r);
                             // gl_FragColor.rgb *= ((resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
@@ -187,8 +195,9 @@ class DrawingEngine {
                             // gl_FragColor = vec4(color.rgb*resultColor.rgb, brushMapColor.r);
                             // gl_FragColor *= resultColor.r* brushMapColor.r;
                             // gl_FragColor *= brushMapColor.r ;//vec4(color.rgb, brushMapColor.r );
-                            gl_FragColor *= (( resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
-                            gl_FragColor.a *= brushMapColor.r;
+                            // gl_FragColor.a *= brushMapColor.r;
+                            // gl_FragColor *= ((brushMapColor.r * resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
+
                         }
                 `
             }),
@@ -321,6 +330,7 @@ class DrawingEngine {
                         }
                         
                     } else {
+                        // this.circle.count = 0
                         this.circle.count = 1
                         const matrix = new THREE.Matrix4()
                         matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
@@ -374,8 +384,7 @@ class DrawingEngine {
         this.core.renderer.render(this.drawScene,this.drawCamera)
     
         this.core.renderer.setRenderTarget(null)
-
-        // quad.render(renderer) // что бы видеть прошлое что нарисовали 
+        // this.quad.render(this.core.renderer) // что бы видеть прошлое что нарисовали 
         // quad2.render(renderer)
 
         this.core.renderer.autoClear = true
