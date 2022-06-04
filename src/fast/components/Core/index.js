@@ -59,6 +59,8 @@ class Core {
         this.camera = new THREE.PerspectiveCamera( 70, this.w / this.h, 0.01, 10 )
         this.camera.position.z = 1
 
+        this.scene.add(this.camera)
+
         this.scene.background = new THREE.Color('green')
         this.controls = new OrbitControls(this.camera,this.renderer.domElement)
         this.controls.maxDistance = 0
@@ -78,7 +80,12 @@ class Core {
             'Opacity': 1.0,
             'Brush size': this.startDim,
             'Mode': 'Drawing',
-            'Scene color':  this.scene.background.getHex()
+            'Scene color':  this.scene.background.getHex(), 
+            'Canvas View':  () => {
+                this.setCameraToDef()
+            },
+            'Attach to camera': true,
+
         }
 
         this.resultPlane = new THREE.Mesh(
@@ -98,7 +105,6 @@ class Core {
 
         this.box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
         this.box1.position.set(0,0,0)
-        // this.box1.renderOrder = -999
 
         this.scene.add(this.box1)
         this.scene.add(this.resultPlane)
@@ -153,23 +159,32 @@ class Core {
         this.resultPlane.geometry.attributes.position.needsUpdate = true
         this.tempResulpPlane.geometry.attributes.position.needsUpdate = true
 
-        this.renderer.setRenderTarget(this.drawingEngine.rt)
-        this.renderer.setClearColor(new THREE.Color(0x000000), 0)
-        this.renderer.clearColor()
-        this.renderer.setRenderTarget(null)
-        this.drawingEngine.renderUp() 
+        const loader = new THREE.ObjectLoader()
+        const cameraPDef = this.camera.toJSON()
+        this.parseCamera = loader.parse(cameraPDef)
+
+        // this.camera.attach(this.resultPlane)
+        // this.camera.attach(this.tempResulpPlane)
+
+        // this.renderer.setRenderTarget(this.drawingEngine.rt)
+        // this.renderer.setClearColor(new THREE.Color(0x000000), 0)
+        // this.renderer.clearColor()
+        // this.renderer.setRenderTarget(null)
+        // this.drawingEngine.renderUp() 
+        this.drawingEngine.setCleanScreen()
 
         window.addEventListener('pointerdown', (event) => this.drawingEngine.down(event))
         window.addEventListener('pointermove', (event) => this.drawingEngine.move(event))
         window.addEventListener('pointerup', (event) => this.drawingEngine.up(event))
 
-        const loader = new THREE.ObjectLoader()
-        const cameraPDef = this.camera.toJSON()
-        this.parseCamera = loader.parse(cameraPDef)
-
     }
     setCameraToDef(){
         this.camera.copy(this.parseCamera)
+    }
+    saveCamera(){
+        const loader = new THREE.ObjectLoader()
+        const cameraPDef = this.camera.toJSON()
+        this.parseCamera = loader.parse(cameraPDef)
     }
 
     render(){
@@ -204,7 +219,7 @@ class Core {
     addGui(){
     
             this.gui.add(this.params,'Clean Screen')
-    
+
             this.gui.addColor(this.params,'Brush Color')
             .onChange((c) => {
                 const color = new THREE.Color(c)
@@ -212,7 +227,7 @@ class Core {
                 // this.drawingEngine.circle.material.uniformsNeedUpdate = true
                 // this.drawingEngine.brushMesh.material.color.setHex( color )
             })
-    
+
             this.gui.add( this.params, 'Brush shape', [
                 // 'clear',
                 'brush_1',
@@ -356,13 +371,19 @@ class Core {
                     // resultPlane.position.set(0,0,0)
                     // tempResulpPlane.position.set(0,0,0)
     
-                    this.setCameraToDef()
-                    this.gui.removeFolder(this.gui.__folders['Plane settings'])
+                    // this.setCameraToDef()
+
+                    if (this.gui.__folders['Plane settings']){
+                        this.gui.removeFolder(this.gui.__folders['Plane settings'])
+                    }
                     // tempResulpPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
                     // resultPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
     
                 } else {
                     // cameraP.position.z = 1.01
+                    // if (this.params['Attach to camera']){
+
+                    
                     const mainFolder = this.gui.addFolder('Plane settings')
                     // const skewFolder = mainFolder.addFolder('Skew')
                     const translatFolder = mainFolder.addFolder('Translate')
@@ -448,12 +469,46 @@ class Core {
                         this.tempResulpPlane.position.z = rsltPlZ - z
     
                     })
-    
+                    // }
+
                     
                 }
 
+
                 this.controls.enabled = this.viewMode
             })
+
+            this.gui.add(this.params,'Canvas View')
+
+            // this.gui.add(this.params,'Attach to camera')
+            // .onChange((v)=>{
+            //     this.params['Attach to camera'] = v
+
+            //     if (this.params['Attach to camera']){
+            //         console.log('attach')
+
+            //         // this.resultPlane.lookAt(this.camera.position.clone())
+            //         // this.tempResulpPlane.lookAt(this.camera.position.clone())
+
+            //         this.setCameraToDef()
+            //         this.camera.attach(this.resultPlane)
+            //         this.camera.attach(this.tempResulpPlane)
+
+            //     } else {
+            //         console.log('remove')
+
+            //         this.saveCamera()
+
+            //         this.scene.attach(this.resultPlane)
+            //         this.scene.attach(this.tempResulpPlane)
+
+            //         if (this.gui.__folders['Plane settings']){
+            //             this.gui.removeFolder(this.gui.__folders['Plane settings'])
+            //         }
+
+            //     }
+
+            // })
     
     
         

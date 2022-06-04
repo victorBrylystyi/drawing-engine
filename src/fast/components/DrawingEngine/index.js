@@ -102,6 +102,11 @@ class DrawingEngine {
                 // blendSrcAlpha:THREE.OneFactor,
                 // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
 
+                // blendSrc:THREE.OneFactor,        
+                // blendDst:THREE.OneMinusSrcAlphaFactor,
+                // blendSrcAlpha:THREE.OneFactor,
+                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+
                 // blendSrc:THREE.SrcAlphaFactor,        
                 // blendDst:THREE.OneFactor,
                 // blendSrcAlpha:THREE.OneFactor,
@@ -177,25 +182,12 @@ class DrawingEngine {
                             uOpacity *= tiltOp * nodeOpacityScale;
 
                             gl_FragColor = vec4(color.rgb, brushMapColor.r * resultColor.r);
-                            // gl_FragColor = brushMapColor;
-
-                            // gl_FragColor = vec4(brushMapColor.r,brushMapColor.r,brushMapColor.r,brushMapColor.r);
-
-                            // gl_FragColor = vec4(color.rgb, resultColor.r);
 
                             // gl_FragColor = vec4(color.rgb, 1.0);
+
                             // gl_FragColor *= resultColor.r;
                             // gl_FragColor *= brushMapColor.r ;
 
-                            // gl_FragColor = vec4(color.rgb, resultColor.r * brushMapColor.r);
-
-                            // gl_FragColor = vec4(color.rgb, brushMapColor.r);
-                            // gl_FragColor.rgb *= ((resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
-
-                            // gl_FragColor = vec4(color.rgb*resultColor.rgb, brushMapColor.r);
-                            // gl_FragColor *= resultColor.r* brushMapColor.r;
-                            // gl_FragColor *= brushMapColor.r ;//vec4(color.rgb, brushMapColor.r );
-                            // gl_FragColor.a *= brushMapColor.r;
                             // gl_FragColor *= ((brushMapColor.r * resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
 
                         }
