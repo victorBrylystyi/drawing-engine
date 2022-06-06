@@ -163,8 +163,8 @@ class Core {
         const cameraPDef = this.camera.toJSON()
         this.parseCamera = loader.parse(cameraPDef)
 
-        // this.camera.attach(this.resultPlane)
-        // this.camera.attach(this.tempResulpPlane)
+        this.camera.attach(this.resultPlane)
+        this.camera.attach(this.tempResulpPlane)
 
         // this.renderer.setRenderTarget(this.drawingEngine.rt)
         // this.renderer.setClearColor(new THREE.Color(0x000000), 0)
@@ -480,35 +480,127 @@ class Core {
 
             this.gui.add(this.params,'Canvas View')
 
-            // this.gui.add(this.params,'Attach to camera')
-            // .onChange((v)=>{
-            //     this.params['Attach to camera'] = v
+            this.gui.add(this.params,'Attach to camera')
+            .onChange((v)=>{
+                this.params['Attach to camera'] = v
 
-            //     if (this.params['Attach to camera']){
-            //         console.log('attach')
+                if (this.params['Attach to camera']){
+                    console.log('attach')
 
-            //         // this.resultPlane.lookAt(this.camera.position.clone())
-            //         // this.tempResulpPlane.lookAt(this.camera.position.clone())
+                    // this.resultPlane.lookAt(this.camera.position.clone())
+                    // this.tempResulpPlane.lookAt(this.camera.position.clone())
 
-            //         this.setCameraToDef()
-            //         this.camera.attach(this.resultPlane)
-            //         this.camera.attach(this.tempResulpPlane)
+                    this.setCameraToDef()
 
-            //     } else {
-            //         console.log('remove')
+                    this.camera.attach(this.resultPlane)
+                    this.camera.attach(this.tempResulpPlane)
 
-            //         this.saveCamera()
+                    // this.camera.lookAt(this.resultPlane.position.clone()) // when skew 
 
-            //         this.scene.attach(this.resultPlane)
-            //         this.scene.attach(this.tempResulpPlane)
+                    if (!this.gui.__folders['Plane settings']&&this.viewMode){
+                        const mainFolder = this.gui.addFolder('Plane settings')
+                        // const skewFolder = mainFolder.addFolder('Skew')
+                        const translatFolder = mainFolder.addFolder('Translate')
+                        // const rotFolder = mainFolder.addFolder('Rotation')
+                        // const scaleFolder = mainFolder.addFolder('Scale')
+        
+        
+                        // skewFolder.add(rlstPlaneSett.skew,'X',-10,10,0.01)
+                        // .onChange((x) => {
+        
+                        //     // const neg = -1 
+                        //     // const pos = 1
+        
+                        //     // let dir = 1
+        
+                        //     // if (x===rlstPlaneSett.skew.prev) return
+        
+                        //     // if (x>0){
+                        //     //     if (x>rlstPlaneSett.skew.prev){
+                        //     //         dir = pos 
+                        //     //     } else {
+                        //     //         dir = neg
+                        //     //     }
+        
+        
+                        //     // } else if (x<0){
+                        //     //     if (x<rlstPlaneSett.skew.prev){
+                        //     //         dir = pos 
+                        //     //     } else {
+                        //     //         dir = neg
+                        //     //     }
+        
+                        //     // }
+        
+                        //     // console.log(dir)
+        
+                        //     // const newX = x * dir 
+        
+                        //     // const matrix = new THREE.Matrix4();
+         
+                        //     // matrix.makeShear(0, newX*DEG2RAD,0, 0, 0, 0);
+                        //     // // console.log(resultPlane.matrixAutoUpdate )
+                        //     // // apply shear matrix to geometry                  
+                        //     // resultPlane.matrix.multiply(matrix.clone())
+                        //     // tempResulpPlane.matrix.multiply(matrix.clone())
+                        //     // resultPlane.matrixAutoUpdate=false
+                        //     // tempResulpPlane.matrixAutoUpdate=false
+        
+                        //     // rlstPlaneSett.skew.prev = x
+                        // })
+        
+                        translatFolder.add(rlstPlaneSett.t,'Z',0,1,0.01)
+                        .onChange((z) => {
+        
+        
+        
+                            const h = 2 * Math.tan((this.camera.fov) * (Math.PI/360)) * (this.camera.near + z) 
+                            const w = h * this.camera.aspect
+                            const buff = [...this.resultPlane.geometry.getAttribute('position').array]
+                            const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
+                            // const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
+                            // resultPlane.translateZ(-z)
+                            // resultPlane.scale.set(w/fw,h/fh,h/fh) //.scale.set(w/fw,h/fh,1)
+                            // tempResulpPlane.scale.set(w/fw,h/fh,h/fh)
+                            // const m = cameraP.projectionMatrix.clone().makeTranslation(0,0,z)
+                            // const vert = new Float32Array( buff.map((item,index) => { 
+                            //     if (index === 2 || index === 5 || index === 8 || index === 11) return item 
+                            //     return item * Math.abs(w/fw)
+                            // } ) )
+                            // resultPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
+                            // tempResulpPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
+        
+                            this.resultPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1) //.scale.set(w/fw,h/fh,1)
+                            this.tempResulpPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
+        
+                    
+        
+                            this.resultPlane.geometry.attributes.position.needsUpdate = true
+                            this.tempResulpPlane.geometry.attributes.position.needsUpdate = true
+        
+                            
+                            this.resultPlane.position.z = rsltPlZ - z
+                            this.tempResulpPlane.position.z = rsltPlZ - z
+        
+                        })
+                    }
 
-            //         if (this.gui.__folders['Plane settings']){
-            //             this.gui.removeFolder(this.gui.__folders['Plane settings'])
-            //         }
+                } else {
+                    console.log('remove')
 
-            //     }
 
-            // })
+                    this.scene.attach(this.resultPlane)
+                    this.scene.attach(this.tempResulpPlane)
+
+                    this.saveCamera()
+
+                    if (this.gui.__folders['Plane settings']){
+                        this.gui.removeFolder(this.gui.__folders['Plane settings'])
+                    }
+
+                }
+
+            })
     
     
         
