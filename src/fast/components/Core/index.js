@@ -303,7 +303,7 @@ class Core {
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
             })    
-            pr.add( this.sett, 'tilt', 0, 1, 0.01 )
+            pr.add( this.sett, 'tilt', 0, 90, 0.1 )
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.tilt.value = v
             })    

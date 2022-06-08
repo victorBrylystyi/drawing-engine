@@ -171,22 +171,24 @@ class DrawingEngine {
 
     
                         void main( void ) {
-                            vec2 brushUV = initialPoint + uvOffset ;//+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y);
-                            vec4 brushMapColor = texture2D(brushMap, vUv);
-                            vec4 resultColor = texture2D(grainMap, brushUV);
 
                             float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
 
-                            float uOpacity = 1.0 - (1.0 - pressure) * pressureOpacity;
-                            float tiltOp = 1.0 - tilt / 90.0 * tiltOpacity;
-                            uOpacity *= tiltOp * nodeOpacityScale;
+                            vec2 brushUV = initialPoint + uvOffset * uBleed; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y);
 
-                            gl_FragColor = vec4(color.rgb, brushMapColor.r * resultColor.r);
+                            vec4 brushMapColor = texture2D(brushMap, vUv);
+                            vec4 resultColor = texture2D(grainMap, brushUV);
+
+                            // float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
+
+                            float uOpacity = 1.0 - (1.0 - pressure) * pressureOpacity;
+                            // float tiltOp = 1.0 - tilt / 90.0 * tiltOpacity;
+                            // uOpacity *= tiltOp * nodeOpacityScale;
+
+                            gl_FragColor = vec4(color.rgb , brushMapColor.r * resultColor.r );
+                            gl_FragColor.a *=   uOpacity * (((1.0+uBleed)) - uBleed ) * (1.0+ uBleed);
 
                             // gl_FragColor = vec4(color.rgb, 1.0);
-
-                            // gl_FragColor *= resultColor.r;
-                            // gl_FragColor *= brushMapColor.r ;
 
                             // gl_FragColor *= ((brushMapColor.r * resultColor.r * (1.0+uBleed)) - uBleed ) * (1.0+ uBleed) * uOpacity ;
 
