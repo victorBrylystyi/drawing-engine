@@ -291,7 +291,7 @@ class Core {
             pr.add(this.sett,'adjust')
             .onChange((v)=>{
                 this.sett.adjust = v
-                console.log(v,this.sett.adjust)
+                if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = v
             })
             pr.add( this.sett, 'pressureBleed',0,1,0.01)
             .onChange( ( v ) => {
@@ -305,18 +305,18 @@ class Core {
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.pressureOpacity.value = v
             })    
-            pr.add( this.sett, 'nodeOpacityScale', 0, 1, 0.01 )
-            .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
-            })    
-            pr.add( this.sett, 'tilt', 0, 90, 0.1 )
-            .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.tilt.value = v
-            })    
-            pr.add( this.sett, 'tiltOpacity', 0, 1, 0.01 )
-            .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.tiltOpacity.value = v
-            })    
+            // pr.add( this.sett, 'nodeOpacityScale', 0, 1, 0.01 )
+            // .onChange( ( v ) => {
+            //     this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
+            // })    
+            // pr.add( this.sett, 'tilt', 0, 90, 0.1 )
+            // .onChange( ( v ) => {
+            //     this.drawingEngine.circle.material.uniforms.tilt.value = v
+            // })    
+            // pr.add( this.sett, 'tiltOpacity', 0, 1, 0.01 )
+            // .onChange( ( v ) => {
+            //     this.drawingEngine.circle.material.uniforms.tiltOpacity.value = v
+            // })    
 
     
             this.gui.add( this.params, 'Opacity', 0, 1, 0.1 )
