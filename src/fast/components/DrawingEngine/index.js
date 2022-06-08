@@ -295,6 +295,8 @@ class DrawingEngine {
 
                     this.core.shouldDraw = true
 
+                    if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
+
                     const pointerWorldPos = new THREE.Vector3(
                         tempLayerObject.uv.x * this.core.rootElement.clientWidth,
                         tempLayerObject.uv.y * this.core.rootElement.clientHeight,
