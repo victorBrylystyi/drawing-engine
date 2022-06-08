@@ -120,8 +120,8 @@ class DrawingEngine {
                     initialPoint: { value: new THREE.Vector2() },
                     brushSize: { value: this.core.startDim },
                     mouseOffset: { value: new THREE.Vector2() },
-                    pressureBleed:{value: 0.5},
-                    pressure:{value: 1.0},
+                    pressureBleed:{value: 1.0},
+                    pressure:{value: 0.5},
 
                     pressureOpacity:{value:1.0},
                     nodeOpacityScale:{value:1.0},
@@ -251,6 +251,10 @@ class DrawingEngine {
                     tempLayerObject.uv.y * this.core.rootElement.clientHeight,
                     tempLayerObject.point.z
                 )
+
+                // console.log(event)
+                if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
+
 
                 this.currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
     

@@ -18,12 +18,13 @@ class Core {
         this.viewMode = false
         this.assets = assets
         this.sett = {
-            pressureBleed: 0.5,
-            pressure:1,
+            pressureBleed: 1.0,
+            pressure: 0.5,
             pressureOpacity:1.0,
             nodeOpacityScale:1.0,
             tilt:0.0,
             tiltOpacity:1.0,
+            adjust:false,
         }
         this.init(assets)
         this.addGui()
@@ -286,14 +287,19 @@ class Core {
             // nodeOpacityScale:{value:1.0},
             // tilt:{value:90.0},
             // tiltOpacity:{value:1.0}
-            console.log(this.sett)
+            // console.log(this.sett)
+            pr.add(this.sett,'adjust')
+            .onChange((v)=>{
+                this.sett.adjust = v
+                console.log(v,this.sett.adjust)
+            })
             pr.add( this.sett, 'pressureBleed',0,1,0.01)
             .onChange( ( v ) => {
                 this.drawingEngine.circle.material.uniforms.pressureBleed.value = v
             })    
             pr.add( this.sett, 'pressure', 0, 1, 0.01 )
             .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.pressure.value = v
+                if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = v
             })    
             pr.add( this.sett, 'pressureOpacity', 0, 1, 0.01 )
             .onChange( ( v ) => {
