@@ -291,7 +291,8 @@ class Core {
             pr.add(this.sett,'adjust')
             .onChange((v)=>{
                 this.sett.adjust = v
-                if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = v
+                if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = this.sett.pressure
+                
             })
             pr.add( this.sett, 'pressureBleed',0,1,0.01)
             .onChange( ( v ) => {
@@ -491,7 +492,7 @@ class Core {
                 this.params['Attach to camera'] = v
 
                 if (this.params['Attach to camera']){
-                    console.log('attach')
+                    // console.log('attach')
 
                     // this.resultPlane.lookAt(this.camera.position.clone())
                     // this.tempResulpPlane.lookAt(this.camera.position.clone())
@@ -592,7 +593,7 @@ class Core {
                     }
 
                 } else {
-                    console.log('remove')
+                    // console.log('remove')
 
 
                     this.scene.attach(this.resultPlane)

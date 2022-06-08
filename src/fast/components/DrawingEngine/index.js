@@ -10,7 +10,7 @@ class DrawingEngine {
         this.brushes = brushes
         this.core = core
         this.pointerCount = 0
-        this.count = 256
+        this.count = 512
         this.raycaster = new THREE.Raycaster()
         this.pointer = new THREE.Vector2()
         this.currentMousePosition =  new THREE.Vector2()
@@ -231,7 +231,7 @@ class DrawingEngine {
 
             this.circle.material.uniforms.initialPoint.value = new THREE.Vector2(Math.random(),Math.random())
             this.circle.material.uniforms.mouseOffset.value = new THREE.Vector2(Math.random(),Math.random())
-            this.circle.material.uniformsNeedUpdate = true
+            // this.circle.material.uniformsNeedUpdate = true
 
             this.setClearTempLayer()
 
@@ -242,9 +242,7 @@ class DrawingEngine {
             const intersectObjects = this.raycaster.intersectObjects( this.core.scene.children )
 
             const tempLayerObject = intersectObjects.find(item => item.object.name === 'tempLayer')
-            // console.log('pointer', pointer.clone(), tempLayerObject.uv.clone())
-            // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-            // console.log('intersectObjects', intersectObjects)
+
             if (tempLayerObject){
                 const pointerWorldPos = new THREE.Vector3(
                     tempLayerObject.uv.x * this.core.rootElement.clientWidth,
@@ -252,7 +250,7 @@ class DrawingEngine {
                     tempLayerObject.point.z
                 )
 
-                // console.log(event)
+                // console.log(event,event.tiltX,event.tiltY)
                 if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
 
 
@@ -260,7 +258,7 @@ class DrawingEngine {
     
                 this.circle.count = 1
                 const matrix = new THREE.Matrix4()
-                matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
+                // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                 matrix.setPosition(pointerWorldPos)
                 this.circle.setMatrixAt(0, matrix)
                 this.circle.instanceMatrix.needsUpdate = true
@@ -274,9 +272,9 @@ class DrawingEngine {
     move (event) {
         if (!this.core.viewMode){
             // const wp = drag(event, rootElement)
-            const wp = drag(event, {clientHeight:this.core.h,clientWidth:this.core.w})
+            // const wp = drag(event, {clientHeight:this.core.h,clientWidth:this.core.w})
             
-            this.brush.position.set(wp.x,wp.y,0)
+            // this.brush.position.set(wp.x,wp.y,0)
 
             if (this.core.paint){
 
@@ -323,22 +321,23 @@ class DrawingEngine {
                             const x = lerp(this.prevMousePosition.x, this.currentMousePosition.x, dt)
                             const y = lerp(this.prevMousePosition.y, this.currentMousePosition.y, dt)
                             const matrix = new THREE.Matrix4()
-                            matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
+                            // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                             matrix.setPosition(x,y,0)
                             this.circle.setMatrixAt(i + this.pointerCount, matrix)
                             this.circle.instanceMatrix.needsUpdate = true
                         }
-                        
+                        this.pointerCount += distance-1
                     } else {
                         // this.circle.count = 0
                         this.circle.count = 1
                         const matrix = new THREE.Matrix4()
-                        matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
+                        // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                         matrix.setPosition(pointerWorldPos)
                         this.circle.setMatrixAt(0, matrix)
                         this.circle.instanceMatrix.needsUpdate = true
+                        // this.pointerCount += distance
                     }
-                    this.pointerCount += distance
+                    // this.pointerCount += (distance-1)
                 } else {
 
                     this.core.shouldDraw = false
@@ -370,6 +369,7 @@ class DrawingEngine {
         this.core.renderer.autoClear = true
     
         this.core.renderer.setRenderTarget(null)
+        // this.pointerCount = 0
         // quad.render(renderer)
 
         // this.core.tempResulpPlane.visible = false
