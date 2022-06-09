@@ -294,18 +294,18 @@ class Core {
                 if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = this.sett.pressure
                 
             })
-            pr.add( this.sett, 'pressureBleed',0,1,0.01)
-            .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.pressureBleed.value = v
-            })    
+            // pr.add( this.sett, 'pressureBleed',0,1,0.01)
+            // .onChange( ( v ) => {
+            //     this.drawingEngine.circle.material.uniforms.pressureBleed.value = v
+            // })    
             pr.add( this.sett, 'pressure', 0, 1, 0.01 )
             .onChange( ( v ) => {
                 if (this.sett.adjust) this.drawingEngine.circle.material.uniforms.pressure.value = v
             })    
-            pr.add( this.sett, 'pressureOpacity', 0, 1, 0.01 )
-            .onChange( ( v ) => {
-                this.drawingEngine.circle.material.uniforms.pressureOpacity.value = v
-            })    
+            // pr.add( this.sett, 'pressureOpacity', 0, 1, 0.01 )
+            // .onChange( ( v ) => {
+            //     this.drawingEngine.circle.material.uniforms.pressureOpacity.value = v
+            // })    
             // pr.add( this.sett, 'nodeOpacityScale', 0, 1, 0.01 )
             // .onChange( ( v ) => {
             //     this.drawingEngine.circle.material.uniforms.nodeOpacityScale.value = v
