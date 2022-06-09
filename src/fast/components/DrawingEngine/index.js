@@ -172,21 +172,23 @@ class DrawingEngine {
     
                         void main( void ) {
 
-                            float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
+                            // float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
 
-                            vec2 brushUV = initialPoint + uvOffset * uBleed; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y);
+                            vec2 brushUV = initialPoint + uvOffset; //+ vUv * vec2(brushSize / canvasSize.x, brushSize / canvasSize.y);
 
                             vec4 brushMapColor = texture2D(brushMap, vUv);
                             vec4 resultColor = texture2D(grainMap, brushUV);
 
                             // float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
+                            // float uBleed = mix( resultColor.r, vec3(1.0), max(0.0, (pressure - 0.5) * 2.0) );
 
-                            float uOpacity = 1.0 - (1.0 - pressure) * pressureOpacity;
+                            // float uOpacity = 1.0 - (1.0 - pressure) * pressureOpacity;
                             // float tiltOp = 1.0 - tilt / 90.0 * tiltOpacity;
                             // uOpacity *= tiltOp * nodeOpacityScale;
+                            vec3 colorBleed = mix( resultColor.rgb, vec3(1.0), max(0.0, (pressure - 0.5) * 2.0) );
 
-                            gl_FragColor = vec4(color.rgb , brushMapColor.r * resultColor.r );
-                            gl_FragColor.a *=   uOpacity * (((1.0+uBleed)) - uBleed ) * (1.0+ uBleed);
+                            gl_FragColor = vec4(color.rgb , brushMapColor.r * colorBleed.r );
+                            gl_FragColor.a *= clamp(pressure * 2.0, 0.0, 1.0);  //uOpacity * (((1.0+uBleed)) - uBleed ) * (1.0+ uBleed);
 
                             // gl_FragColor = vec4(color.rgb, 1.0);
 
@@ -249,6 +251,7 @@ class DrawingEngine {
                     tempLayerObject.uv.y * this.core.rootElement.clientHeight,
                     tempLayerObject.point.z
                 )
+                // console.log('down')
 
                 // console.log(event,event.tiltX,event.tiltY)
                 if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
@@ -292,8 +295,9 @@ class DrawingEngine {
                 if (tempLayerObject){
 
                     this.core.shouldDraw = true
-
-                    if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
+                    // const pr = Math.floor( event.pressure * 10) /10
+                    // console.log('move')
+                    if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure 
 
                     const pointerWorldPos = new THREE.Vector3(
                         tempLayerObject.uv.x * this.core.rootElement.clientWidth,
@@ -311,13 +315,14 @@ class DrawingEngine {
                     // this.circle.material.uniforms.mouseOffset.value = pos
                     // this.circle.material.uniformsNeedUpdate = true
 
-                    this.circle.count = (distance - 1) + this.pointerCount
+                    // console.log(distance,this.prevMousePosition.distanceTo(this.currentMousePosition))
 
                     if (distance > 1){
+                        this.circle.count = distance + this.pointerCount
 
                         for (let i = 0; i < distance; i++){
 
-                            const dt = i / (distance-1)
+                            const dt = i / distance
                             const x = lerp(this.prevMousePosition.x, this.currentMousePosition.x, dt)
                             const y = lerp(this.prevMousePosition.y, this.currentMousePosition.y, dt)
                             const matrix = new THREE.Matrix4()
@@ -326,16 +331,15 @@ class DrawingEngine {
                             this.circle.setMatrixAt(i + this.pointerCount, matrix)
                             this.circle.instanceMatrix.needsUpdate = true
                         }
-                        this.pointerCount += distance-1
+                        this.pointerCount += distance
                     } else {
                         // this.circle.count = 0
-                        this.circle.count = 1
+                        this.circle.count += 1
                         const matrix = new THREE.Matrix4()
                         // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                         matrix.setPosition(pointerWorldPos)
-                        this.circle.setMatrixAt(0, matrix)
+                        this.circle.setMatrixAt(this.circle.count-1, matrix)
                         this.circle.instanceMatrix.needsUpdate = true
-                        // this.pointerCount += distance
                     }
                     // this.pointerCount += (distance-1)
                 } else {
@@ -352,6 +356,7 @@ class DrawingEngine {
         // event.preventDefault()
         this.core.paint = false
         this.core.shouldDraw = false
+        // console.log('up')
         
         this.renderUp()
         this.setClearTempLayer()
