@@ -1,14 +1,12 @@
 import * as THREE from 'three'
 import path from 'path-browserify'
 import { LoaderIndicator } from '../components/Loader/LoaderIndicator'
-import drawEngine from './drawEngine'
-import Core from './components/Core'
+import App from './components/App'
 
 
-class App {
+class LoadApp {
     constructor (root) {
         this.rootElement = root
-        this.drawEngine = drawEngine
 
         this.urls = [
             './assets/brush/brush_1.png',
@@ -70,12 +68,11 @@ class App {
     }
     goDrawEngine (){
         this.rootElement.removeChild( this.loadElement.holder )
-        // this.drawEngine(this.assets,this.rootElement)
-        const core = new Core(this.assets,this.rootElement)
+        const app = new App(this.assets,this.rootElement)
     }
 
 }
 
-export default App
+export default LoadApp
 
 

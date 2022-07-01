@@ -1,124 +1,85 @@
+
 import * as THREE from 'three'
 import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass'
-import { drag } from '../../utils'
-import { lerp, DEG2RAD } from 'three/src/math/MathUtils'
+import Canva from '../Canva'
+import { lerp } from 'three/src/math/MathUtils'
+import WorkLayer from '../WorkLayer'
+import DrawingStore from '../Store'
 
+class Engine extends THREE.Object3D {
 
-class DrawingEngine {
+    isDrawingEngine = true
+    count = 512
+    drawScene = new THREE.Scene()
+    drawCamera  = new THREE.OrthographicCamera()
+    raycaster = new THREE.Raycaster()
+    pointer = new THREE.Vector2()
+    currentMousePosition =  new THREE.Vector2()
+    prevMousePosition =  new THREE.Vector2()
+    shouldDraw = false
+    paint = false
+    pointerCount = 0
+    defBrushSize = 50
+    viewMode = false
+    canvaList = []
+    store = new DrawingStore('engineStore')
+    drawList = []
 
-    constructor (brushes,core){
-        this.brushes = brushes
-        this.core = core
-        this.pointerCount = 0
-        this.count = 512
-        this.raycaster = new THREE.Raycaster()
-        this.pointer = new THREE.Vector2()
-        this.currentMousePosition =  new THREE.Vector2()
-        this.prevMousePosition =  new THREE.Vector2()
-        this.paramsCircle = {
-            'Brush size': 1,
-            'Rotation': 0
-        }
-        this.init()
-    }
+    constructor({renderer, canvas, brushAssets, appRef}){
+        super()
+        this.raycaster.near = -1
+        this.renderer = renderer
+        this.canvas = canvas
+        this.brushAssets = brushAssets
+        this.core = appRef
 
-    init(){
+        this.activeCanva =  null // ссылка на холст из children
 
-        this.rt = new THREE.WebGLRenderTarget(this.core.w,this.core.h,{
-            minFilter: THREE.NearestFilter, 
-            magFilter: THREE.NearestFilter,
-            generateMipmaps: false, 
-        })
-        this.temporaryLayer = new THREE.WebGLRenderTarget(this.core.w,this.core.h,{
-            minFilter: THREE.NearestFilter, 
-            magFilter: THREE.NearestFilter,
-            generateMipmaps: false, 
-        })
+        this.workLayer = new WorkLayer(this)
+
         this.quad = new FullScreenQuad(new THREE.MeshBasicMaterial({
-            map: this.temporaryLayer.texture, 
+            map: this.workLayer.temporaryLayerRT.texture, 
             transparent:true,
-
-            // blending:THREE.CustomBlending,
-
-            // blendSrc:THREE.SrcAlphaFactor,        // one of true variant
-            // blendDst:THREE.OneMinusSrcAlphaFactor,
-            // blendSrcAlpha:THREE.OneFactor,
-            // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
-
             side:THREE.FrontSide,
         }))
 
+        this.quad2 = new FullScreenQuad(new THREE.MeshBasicMaterial({
+            side: THREE.FrontSide,
+            blending:THREE.CustomBlending,
+            blendSrc:THREE.OneFactor,        
+            blendDst:THREE.OneMinusSrcAlphaFactor,
+            blendSrcAlpha:THREE.OneFactor,
+            blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
+            transparent:true,
+        }))
 
-        this.drawScene = new THREE.Scene()
-        this.sceneCursor = new THREE.Scene()
 
-        this.drawCamera  = new THREE.OrthographicCamera()
         this.drawCamera.left   = 0 
-        this.drawCamera.right  = this.core.w 
-        this.drawCamera.top    = this.core.h 
+        this.drawCamera.right  = this.canvas.clientWidth
+        this.drawCamera.top    = this.canvas.clientHeight
         this.drawCamera.bottom = 0
         this.drawCamera.near   = -2000
         this.drawCamera.far    = 2000
         this.drawCamera.position.z = 0.01
         this.drawCamera.updateProjectionMatrix()  //!!!! 
 
-        const texture = this.brushes[this.brushes.findIndex( texture => texture.name === 'grain_1')] 
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
-        // gridTexture.flipY = false
 
-        this.circle = new THREE.InstancedMesh(        // brush 
-            new THREE.PlaneGeometry(this.core.startDim,this.core.startDim),
-            // new THREE.MeshBasicMaterial({
-            //     blending:THREE.CustomBlending,
-            //     blendSrc:THREE.OneFactor,        
-            //     blendDst:THREE.OneMinusSrcAlphaFactor,
-            //     blendSrcAlpha:THREE.OneFactor,
-            //     blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-            //     transparent:true,
-            //     color:'red',
-            //     map:this.brushes[this.brushes.findIndex( texture => texture.name === 'grain_2')],
-            //     alphaMap:this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_2')],
-            // }),
+        this.brush = new THREE.InstancedMesh (        // brush 
+            new THREE.PlaneGeometry(this.defBrushSize,this.defBrushSize),
             new THREE.ShaderMaterial({
                 transparent: true,
                 depthTest:false, 
                 depthWrite:false,
                 side:THREE.FrontSide,
-                // premultipliedAlpha:true,
-
                 blendEquation: THREE.MaxEquation,
-
                 blending:THREE.CustomBlending,
-
-                // blendSrc:THREE.SrcColorFactor,          // def
-                // blendDst:THREE.OneMinusSrcAlphaFactor,
-                // blendSrcAlpha:THREE.SrcColorFactor,
-                // blendDstAlpha:THREE.OneFactor,
-
-                // blendSrc:THREE.OneFactor,         // v1
-                // blendDst:THREE.ZeroFactor,
-                // blendSrcAlpha:THREE.OneFactor,
-                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
-                // blendSrc:THREE.OneFactor,        
-                // blendDst:THREE.OneMinusSrcAlphaFactor,
-                // blendSrcAlpha:THREE.OneFactor,
-                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
-                // blendSrc:THREE.SrcAlphaFactor,        
-                // blendDst:THREE.OneFactor,
-                // blendSrcAlpha:THREE.OneFactor,
-                // blendDstAlpha:THREE.OneMinusSrcAlphaFactor,
-
                 uniforms:{
-                    color: { value: new THREE.Vector4(1.0, 1.0, 1.0, 1.0)},
-                    brushMap: { value: this.brushes[this.brushes.findIndex( texture => texture.name === 'brush_1')] },
-                    grainMap: { value: texture},
-                    canvasSize: { value: new THREE.Vector2(this.core.w, this.core.h) },
+                    color: { value: new THREE.Vector4(0.0, 0.0, 0.0, 1.0)},
+                    brushMap: { value: this.brushAssets[this.brushAssets.findIndex( texture => texture.name === 'brush_1')] },
+                    grainMap: { value: this.brushAssets[this.brushAssets.findIndex( texture => texture.name === 'grain_1')] },
+                    canvasSize: { value: new THREE.Vector2(this.canvas.clientWidth,this.canvas.clientHeight) },
                     initialPoint: { value: new THREE.Vector2() },
-                    brushSize: { value: this.core.startDim },
+                    brushSize: { value: this.defBrushSize },
                     mouseOffset: { value: new THREE.Vector2() },
                     pressureBleed:{value: 1.0},
                     pressure:{value: 0.5},
@@ -130,24 +91,24 @@ class DrawingEngine {
 
                 },
                 vertexShader:`
-    
+
                     varying vec2 vUv;
                     varying vec2 uvOffset;
 
                     uniform vec2 canvasSize;
-    
+
 
                     void main() {
-                  
+                
                         vec4 mvPosition = instanceMatrix * vec4( position, 1.0 );
-                  
+                
                         vec4 modelViewPosition = modelViewMatrix * mvPosition;
                         gl_Position = projectionMatrix * modelViewPosition;
                         vUv = uv;
                         uvOffset = vec2(mvPosition.x / canvasSize.x, mvPosition.y / canvasSize.y);
                     }
                 `,
-    
+
                 fragmentShader:`
                         varying vec2 vUv;
                         varying vec2 uvOffset;
@@ -169,7 +130,7 @@ class DrawingEngine {
                         uniform float tilt;
                         uniform float tiltOpacity;
 
-    
+
                         void main( void ) {
 
                             // float uBleed = pow(1.0 - pressure, 1.6) * pressureBleed;
@@ -199,126 +160,394 @@ class DrawingEngine {
             }),
             this.count
         )
-        this.circle.instanceMatrix.setUsage( THREE.DynamicDrawUsage ) // will be updated every frame
-        this.drawScene.add(this.circle)
+        this.brush.instanceMatrix.setUsage( THREE.DynamicDrawUsage ) // will be updated every frame
 
-        this.brush = new THREE.Group()
-        this.brushMesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(this.core.startDim,this.core.startDim), 
-            new THREE.MeshBasicMaterial({
-                transparent: true
-            })
-        )
-        // this.brush.add(this.brushMesh)
-        this.sceneCursor.add(this.brush)
+
+        this.drawScene.add(this.brush)
+
+        this.canvas.addEventListener('pointerdown', (event) => this._down(event))
+        this.canvas.addEventListener('pointermove', (event) => this._move(event))
+        this.canvas.addEventListener('pointerup', () => this._upHandler())
+
+        this.addEventListener('onDown', (event) => this.store.setCurrent({...event.payload}))
+        this.addEventListener('onMove', (event) => this.store.setCurrentAttributes({...event.payload}))
+        this.addEventListener('onUp', () => this.store.setStroke())
+
+        this.store.addEventListener('onSaveStroke',(event) => console.log(event.strokes))
+
     }
-    setCleanScreen(){
-        this.core.renderer.setRenderTarget(this.rt)
-        this.core.renderer.setClearColor(new THREE.Color(0x000000), 0)
-        this.core.renderer.clearColor()
-        this.core.renderer.setRenderTarget(null)
-        this.renderUp()
+
+    drawByStore(){
+
+
+    }
+
+    _onDown(){
+
+        const currentData = this.store.getInitStore()  
+
+        currentData.id = THREE.MathUtils.generateUUID()
+
+        currentData.brush = this.brush.material.uniforms.brushMap.value.name 
+        currentData.grain = this.brush.material.uniforms.grainMap.value.name 
+        currentData.canvaName = this.activeCanva.name
+        currentData.size = this.brush.material.uniforms.brushSize.value
+
+        currentData.brushColor.r = this.brush.material.uniforms.color.value.x
+        currentData.brushColor.g = this.brush.material.uniforms.color.value.y
+        currentData.brushColor.b = this.brush.material.uniforms.color.value.z
+        currentData.brushColor.a = this.brush.material.uniforms.color.value.w
+
+        currentData.opacity =  this.workLayer.tempLayer.material.opacity
+
+        return currentData
+    }
+
+    _onMove(position = [], pressure = 0.5, tilt = 0){
+        return {position, pressure, tilt}
+    }
+
+    _onUp(){
+        return 'onUpSettings'
+    }
+
+    setCleanScreenActiveLayer(){
+
+        if (this.activeCanva){
+
+            this.renderer.setRenderTarget(this.workLayer.mainLayerRT)
+            // const color = new THREE.Color()
+            // color.r = Math.random()
+            // color.g = Math.random()
+            // color.b = Math.random()
+            this.renderer.setClearColor(new THREE.Color(0x000000), 0)
+            // this.renderer.setClearColor(color, 1)
+            this.renderer.clearColor()
+            this.renderer.setRenderTarget(null)
+            this._renderUp()
+        }
+
     }
 
     setClearTempLayer(){
-        this.core.renderer.setRenderTarget(this.temporaryLayer)
-        this.core.renderer.setClearColor(new THREE.Color(0x000000), 0)
-        this.core.renderer.clearColor()
-        this.core.renderer.setRenderTarget(null)
+        this.renderer.setRenderTarget(this.workLayer.temporaryLayerRT)
+        this.renderer.setClearColor(new THREE.Color(0x000000), 0)
+        this.renderer.clearColor()
+        this.renderer.setRenderTarget(null)
     }
-    down(event) {
+    
+    setBrushColor( color ){
+        this.brush.material.uniforms.color.value.set(color.r,color.g,color.b, 1.0)
+    }
 
-        if (!this.core.viewMode){
-            this.core.paint = true
+    setBrushShape( name = 'brush_1' ){
+        const texture = this.brushAssets[this.brushAssets.findIndex( texture => texture.name === name)]
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        this.brush.material.uniforms.brushMap.value = texture
+    }
 
-            this.circle.material.uniforms.initialPoint.value = new THREE.Vector2(Math.random(),Math.random())
-            this.circle.material.uniforms.mouseOffset.value = new THREE.Vector2(Math.random(),Math.random())
-            // this.circle.material.uniformsNeedUpdate = true
+    setGrainTexture( name = 'grain_1' ){
+        const texture = this.brushAssets[this.brushAssets.findIndex( texture => texture.name === name)]
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        this.brush.material.uniforms.grainMap.value = texture
+    }
+
+    setPressure( pressure ){
+        this.brush.material.uniforms.pressure.value = pressure
+    }
+
+    setOpacity( opacity ){
+
+        this.quad.material.opacity = opacity
+        this.workLayer.tempLayer.material.opacity = opacity
+    }
+
+    setBrushSize( size ){
+
+        const scale = size/this.defBrushSize 
+
+        this.brush.geometry.scale(scale,scale,scale)
+        this.defBrushSize = size
+
+        this.brush.material.uniforms.brushSize.value = size
+    }
+
+    updateCanvases(camera){
+        for (const child of this.children){
+            if (child.isCanva && child.isAttachToCamera){ 
+                child.updateFromCamera(camera)
+            }
+        }
+    }
+
+    addToCanvaList (newCanva){
+
+        this.add(newCanva)
+        this.canvaList.push(newCanva)
+        // this.eng.add(newCanva)
+
+    }
+
+    setVisibleCanvases(visu){
+        for (const canva of this.canvaList){
+            canva.visible = visu
+        }
+        this.visible = visu
+    }
+
+    _foundCanvaByName(name){
+
+        return this.children[this.children.findIndex( child => child.name === name)] || this.canvaList[this.canvaList.findIndex( child => child.name === name)]
+    }
+
+    setVisibleActiveCanva(visu){
+
+        if (this.activeCanva) this.activeCanva.visible = visu
+
+    }
+
+    changeVisibleCanva(name){
+
+        const canva = this._foundCanvaByName(name)
+
+        if (canva)  canva.visible = !canva.visible
+    
+
+    }
+
+    setParallelTranslate(layer, z){
+
+        const h = 2 * Math.tan((this.core.camera.fov) * (Math.PI/360)) * (this.core.camera.near + z) 
+        const w = h * this.core.camera.aspect
+
+        layer.traverse((object) => {
+            if(object.isMesh){
+                const buff = [...object.geometry.getAttribute('position').array]
+                const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
+                object.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
+                object.geometry.attributes.position.needsUpdate = true
+                object.position.z = 0 - z
+            }
+        })
+
+    }
+
+    setTranslateActiveCanva(z){
+
+        if(this.activeCanva && this.activeCanva.isAttachToCamera){
+
+            this.activeCanva.translateZValue = z 
+
+            this.setParallelTranslate(this.activeCanva, z)
+
+            // const h = 2 * Math.tan((this.core.camera.fov) * (Math.PI/360)) * (this.core.camera.near + z) 
+            // const w = h * this.core.camera.aspect
+
+    
+            // // const buff = [...this.activeCanva.mainLayer.geometry.getAttribute('position').array]
+            // // const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
+
+            // this.activeCanva.traverse((object) => {
+            //     if(object.isMesh){
+                        // const buff = [...object.geometry.getAttribute('position').array]
+                        // const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
+            //         object.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
+            //         object.geometry.attributes.position.needsUpdate = true
+            //         object.position.z = 0 - z
+            //     }
+            // })
+        }
+
+    }
+
+    createNewCanva (name = 'Canva 0'){
+
+        const newCanva = new Canva(this, name)
+        this.addToCanvaList(newCanva)
+
+        return newCanva
+
+    }
+
+    setAttachToCameraActiveCanva(v){
+
+        if (this.activeCanva){
+            if (v && !this.activeCanva.isAttachToCamera){
+
+                this.core.setCameraToDef()
+    
+                this.core.camera.attach(this.activeCanva)
+  
+    
+            } else if (!v && this.activeCanva.isAttachToCamera){
+                this.attach(this.activeCanva)
+                this.core.saveCamera()
+            }
+
+            this.activeCanva.isAttachToCamera = v
+
+        }
+
+    }
+
+    setVisibleCanvaByName(name, visu){
+
+       this._foundCanvaByName(name).visible = visu
+
+    }
+
+    setActiveCanva(name = ''){
+
+
+
+        if (name === 'none') {
+            // if (this.activeCanva) this.activeCanva.visible = false
+
+            this.activeCanva = null
+
+        } 
+
+        const canva =  this._foundCanvaByName(name)
+
+
+
+        if (canva){
+            this.activeCanva = canva
+
+            // this.activeCanva.add(this.workLayer)
+            // const deltaZ = this.activeCanva.mainLayer.position.z - this.workLayer.tempLayer.position.z
+            // console.log(deltaZ)
+
+            // this.setParallelTranslate(this.workLayer, deltaZ)
+            this.activeCanva.attach(this.workLayer) // templayer в прошлой позиции как и зазмер 
+    
+            this.renderer.setRenderTarget(this.workLayer.mainLayerRT)
+            this.renderer.setClearColor(new THREE.Color(0x000000), 0)
+            this.renderer.clearColor()
+    
+            this.quad2.material.map = this.activeCanva.mainLayer.material.map
+            this.quad2.render(this.renderer)
+    
+            this.renderer.setRenderTarget(null)
+
+            if (!this.activeCanva.isAddToEngine) this.activeCanva.updateFromCamera(this.core.camera) /// !!!
+
+            // this.activeCanva.updateFromCamera(this.core.camera) /// !!!
+
+
+            this.activeCanva.isAddToEngine = true
+
+            // console.log('main',this.activeCanva.mainLayer.position.clone())
+            // console.log('temp',this.workLayer.tempLayer.position.clone())
+
+
+        }
+        console.log(canva)
+
+        this.dispatchEvent({
+            type:'setActiveCanva',
+            payload: (name !== 'none') && (canva) ? name : null
+        })
+
+    }
+
+    _down(event) {
+
+        if (!this.viewMode && this.activeCanva){
+            this.paint = true
+
+            this.brush.material.uniforms.initialPoint.value = new THREE.Vector2(Math.random(),Math.random())
+            this.brush.material.uniforms.mouseOffset.value = new THREE.Vector2(Math.random(),Math.random())
+            // this.brush.material.uniformsNeedUpdate = true
 
             this.setClearTempLayer()
 
-            this.pointer.x = ( event.clientX / this.core.rootElement.clientWidth) * 2 - 1
-            this.pointer.y = 1 - ( event.clientY / this.core.rootElement.clientHeight ) * 2
+            this.pointer.x = ( event.clientX / this.canvas.offsetWidth) * 2 - 1
+            this.pointer.y = 1 - ( event.clientY / this.canvas.offsetHeight ) * 2
 
             this.raycaster.setFromCamera(this.pointer,this.core.camera)
+
             const intersectObjects = this.raycaster.intersectObjects( this.core.scene.children )
 
             const tempLayerObject = intersectObjects.find(item => item.object.name === 'tempLayer')
 
+
+            // console.log(intersectObjects)
+
             if (tempLayerObject){
                 const pointerWorldPos = new THREE.Vector3(
-                    tempLayerObject.uv.x * this.core.rootElement.clientWidth,
-                    tempLayerObject.uv.y * this.core.rootElement.clientHeight,
+                    tempLayerObject.uv.x * this.canvas.clientWidth,
+                    tempLayerObject.uv.y * this.canvas.clientHeight,
                     tempLayerObject.point.z
                 )
-                // console.log('down')
 
-                // console.log(event,event.tiltX,event.tiltY)
-                if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure
-
+                if (!this.core.params['Pressure settings'].adjust) this.setPressure(event.pressure) 
 
                 this.currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
     
-                this.circle.count = 1
+                this.brush.count = 1
                 const matrix = new THREE.Matrix4()
-                // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                 matrix.setPosition(pointerWorldPos)
-                this.circle.setMatrixAt(0, matrix)
-                this.circle.instanceMatrix.needsUpdate = true
+                this.brush.setMatrixAt(0, matrix)
+                this.brush.instanceMatrix.needsUpdate = true
     
-                this.renderMove()
-                // this.renderUp()
+                this._renderMove()
+
+
+                this.dispatchEvent({
+                    type:'onDown',
+                    payload: this._onDown()
+                })
+
+                this.dispatchEvent({
+                    type:'onMove',
+                    payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0], this.brush.material.uniforms.pressure.value)
+                })
+
+                // } 
+
+                // this.hasEventListener('onDown')
             } 
         }
     }
 
-    move (event) {
-        if (!this.core.viewMode){
-            // const wp = drag(event, rootElement)
-            // const wp = drag(event, {clientHeight:this.core.h,clientWidth:this.core.w})
-            
-            // this.brush.position.set(wp.x,wp.y,0)
+    _move (event) {
+        if (!this.viewMode && this.activeCanva){
 
-            if (this.core.paint){
+            if (this.paint){
 
                 this.prevMousePosition.copy(this.currentMousePosition)
                 // const pointerWorldPos = drag(event, rootElement)
                 // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
-                this.pointer.x = ( event.clientX / this.core.rootElement.clientWidth) * 2 - 1
-                this.pointer.y = 1 - ( event.clientY / this.core.rootElement.clientHeight ) * 2
+                // this.pointer.x = ( event.clientX / this.canvas.clientWidth) * 2 - 1
+                // this.pointer.y = 1 - ( event.clientY / this.canvas.clientHeight ) * 2
+
+                this.pointer.x = ( event.clientX / this.canvas.offsetWidth) * 2 - 1
+                this.pointer.y = 1 - ( event.clientY / this.canvas.offsetHeight ) * 2
 
                 this.raycaster.setFromCamera(this.pointer,this.core.camera)
                 const intersectObjects = this.raycaster.intersectObjects( this.core.scene.children )
-                // console.log('intersectObjects', intersectObjects)
                 const tempLayerObject = intersectObjects.find(item => item.object.name === 'tempLayer')
-                // const pointerWorldPos = drag(event, {clientHeight:h,clientWidth:w})
+
                 if (tempLayerObject){
 
-                    this.core.shouldDraw = true
-                    // const pr = Math.floor( event.pressure * 10) /10
-                    // console.log('move')
-                    if (!this.core.sett.adjust) this.circle.material.uniforms.pressure.value = event.pressure 
+                    this.shouldDraw = true
+  
+                    if (!this.core.params['Pressure settings'].adjust) this.setPressure(event.pressure) 
 
                     const pointerWorldPos = new THREE.Vector3(
-                        tempLayerObject.uv.x * this.core.rootElement.clientWidth,
-                        tempLayerObject.uv.y * this.core.rootElement.clientHeight,
+                        tempLayerObject.uv.x * this.canvas.clientWidth,
+                        tempLayerObject.uv.y * this.canvas.clientHeight,
                         tempLayerObject.point.z
                     )
                     this.currentMousePosition.set(pointerWorldPos.x,pointerWorldPos.y)
 
                     const distance = Math.floor(this.prevMousePosition.distanceTo(this.currentMousePosition))
 
-                    // const mouseOffset = new THREE.Vector2()
-                    // mouseOffset.set(this.currentMousePosition.x - this.prevMousePosition.x,this.currentMousePosition.y - this.prevMousePosition.y)
-                    // const pos = mouseOffset.clone().normalize().addScalar(1).divideScalar(2)
-                    // console.log(pos)
-                    // this.circle.material.uniforms.mouseOffset.value = pos
-                    // this.circle.material.uniformsNeedUpdate = true
-
-                    // console.log(distance,this.prevMousePosition.distanceTo(this.currentMousePosition))
-
                     if (distance > 1){
-                        this.circle.count = distance + this.pointerCount
+                        this.brush.count = distance + this.pointerCount
 
                         for (let i = 0; i < distance; i++){
 
@@ -326,85 +555,104 @@ class DrawingEngine {
                             const x = lerp(this.prevMousePosition.x, this.currentMousePosition.x, dt)
                             const y = lerp(this.prevMousePosition.y, this.currentMousePosition.y, dt)
                             const matrix = new THREE.Matrix4()
-                            // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                             matrix.setPosition(x,y,0)
-                            this.circle.setMatrixAt(i + this.pointerCount, matrix)
-                            this.circle.instanceMatrix.needsUpdate = true
+                            this.brush.setMatrixAt(i + this.pointerCount, matrix)
+                            this.brush.instanceMatrix.needsUpdate = true
+
+                            this.dispatchEvent({
+                                type:'onMove',
+                                payload: this._onMove([x,y,0],this.brush.material.uniforms.pressure.value)
+                            })
                         }
                         this.pointerCount += distance
                     } else {
-                        // this.circle.count = 0
-                        this.circle.count += 1
+                        this.brush.count += 1
                         const matrix = new THREE.Matrix4()
-                        // matrix.makeRotationZ(this.paramsCircle['Rotation']*DEG2RAD)
                         matrix.setPosition(pointerWorldPos)
-                        this.circle.setMatrixAt(this.circle.count-1, matrix)
-                        this.circle.instanceMatrix.needsUpdate = true
-                    }
-                    // this.pointerCount += (distance-1)
-                } else {
+                        this.brush.setMatrixAt(this.brush.count-1, matrix)
+                        this.brush.instanceMatrix.needsUpdate = true
 
-                    this.core.shouldDraw = false
-                    // pointerCount = 0 
+                        this.dispatchEvent({
+                            type:'onMove',
+                            payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0],this.brush.material.uniforms.pressure.value)
+                        })
+                    }
+
+
+
+                } else {
+                    this.shouldDraw = false
                 }
 
             }
         }
     }
 
-    up(){
+    _upHandler(){
         // event.preventDefault()
-        this.core.paint = false
-        this.core.shouldDraw = false
         // console.log('up')
-        
-        this.renderUp()
-        this.setClearTempLayer()
+
+        if(!this.viewMode && this.activeCanva && this.paint){
+            this._renderUp()
+            this.setClearTempLayer()
+
+            this.dispatchEvent({
+                type:'onUp',
+                payload: this._onUp()
+            })
+        }
+
+        this.paint = false
+        this.shouldDraw = false
+
     }
 
-    renderUp(){
-        this.core.renderer.autoClear = false
+    _renderUp(){
+        this.renderer.autoClear = false
         
-        this.core.renderer.setRenderTarget(this.rt)
-        this.core.renderer.clearDepth()
+        this.renderer.setRenderTarget(this.workLayer.mainLayerRT)
+        this.renderer.clearDepth()
 
-        this.quad.render(this.core.renderer)
+        this.quad.render(this.renderer)
 
 
-        this.core.renderer.autoClear = true
+        this.renderer.autoClear = true
+
+        this.renderer.copyFramebufferToTexture(new THREE.Vector2(0,0),this.activeCanva.mainLayer.material.map)
     
-        this.core.renderer.setRenderTarget(null)
-        // this.pointerCount = 0
-        // quad.render(renderer)
+        this.renderer.setRenderTarget(null)
 
-        // this.core.tempResulpPlane.visible = false
-        // this.core.resultPlane.visible = true
-        // resultPlane.visible = true
     }
-    renderMove(){
-        this.core.renderer.autoClear = false
+
+    _renderMove(){
+        this.renderer.autoClear = false
         
-        this.core.renderer.setRenderTarget(this.temporaryLayer)
-        this.core.renderer.clearDepth()
-        this.core.renderer.render(this.drawScene,this.drawCamera)
+        this.renderer.setRenderTarget(this.workLayer.temporaryLayerRT)
+        this.renderer.clearDepth()
+        this.renderer.render(this.drawScene,this.drawCamera) 
     
-        this.core.renderer.setRenderTarget(null)
-        // this.quad.render(this.core.renderer) // что бы видеть прошлое что нарисовали 
-        // quad2.render(renderer)
+        this.renderer.setRenderTarget(null)
 
-        this.core.renderer.autoClear = true
-
-        // this.core.tempResulpPlane.visible = true
-        // this.core.resultPlane.visible = false
+        this.renderer.autoClear = true
 
         this.pointerCount = 0 // clear integrate instancedMeshs index
     }
-    renderCursor(){
-        this.core.renderer.autoClear = false
-        this.core.renderer.setRenderTarget(null)
-        this.core.renderer.clearDepth()
-        this.core.renderer.render(this.sceneCursor,this.drawCamera)
+
+    update(){
+
+        if (!this.viewMode && this.shouldDraw && this.activeCanva){
+            this._renderMove()
+            this.shouldDraw = false
+        }
+
+        if (this.drawList.length !== 0){
+
+
+
+        }
+
     }
+
 }
 
-export default DrawingEngine 
+export default Engine

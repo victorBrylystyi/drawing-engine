@@ -1,12 +1,12 @@
 /* eslint-disable no-process-env */
-let path = require( 'path' );
-let express = require( 'express' );
+const path = require( 'path' );
+const express = require( 'express' );
 
-let app = express();
+const app = express();
 
 app.use( express.static( path.join( __dirname, '/build' ) ) );
 app.set( 'port', process.env.PORT || 8080 );
 
-let server = app.listen( app.get( 'port' ), () => {
+const server = app.listen( app.get( 'port' ), () => {
 	console.log( 'listening on port ', server.address().port );
 } );

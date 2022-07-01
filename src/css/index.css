@@ -1,4 +1,4 @@
-html{
+html, *{
   margin: 0;
   padding: 0;
 }
@@ -14,9 +14,91 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#root{
-  margin: 0;
-  padding: 0;
+#app{
   width: 100vw;
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+#container{
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto 200px;
+}
+#root{
+  width: 100%;
+  height: 100%;
+}
+
+#ui{
+  width: 100%;
+  height: 200px;
+  background-color: rgb(133, 41, 237);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+#control{
+  width: 20%;
+  height: 100%;
+  background-color: rgb(9, 71, 231);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+#canva{
+  width: 229px;
+  height: 65px;
+  background-color: #d9dcd8;
+  border: 1px solid black;
+  /* text-align: center; */
+  /* line-height: 50px; */
+  display: flex;
+
+}
+
+#canvasList{
+  width: 80%;
+  height: 100%;
+  background-color: rgb(133, 41, 237);
+  display: flex;
+  flex-direction: row;
+  align-items:flex-start;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+#settings{
+  /* display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around; */
+
+}
+
+#activeButton{
+  width: 30%;
+  height: 100%;
+}
+
+#checkContainer{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-around; 
+
+}
+
+
+#button{
+  width: 75%;
+  height: 30%;
+  text-overflow: clip;
 }
