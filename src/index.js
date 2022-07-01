@@ -1,8 +1,8 @@
 // import React from 'react'
 // import ReactDOM from 'react-dom/client'
 // import produce from 'immer'
-// import { animationFrameScheduler, BehaviorSubject, distinct, distinctUntilChanged, map, observeOn, pairwise, Subject } from 'rxjs'
-// import { MathUtils } from 'three'
+import { animationFrameScheduler, BehaviorSubject, distinct, distinctUntilChanged, map, observeOn, pairwise, Subject } from 'rxjs'
+import { MathUtils } from 'three'
 import './css/index.css'
 // import app from './fast'
 import LoadApp from './fast'
@@ -111,128 +111,128 @@ startApp.init()
  
 // test  store 
 
-// const store = new BehaviorSubject({
-//     strokes:[]
-// })
+const store = new BehaviorSubject({
+    strokes:[]
+})
 
 
-// const currentStroke = new BehaviorSubject({
-//     id: null,
-//     positions:[],
-//     startPoint:0
-// })
+const currentStroke = new BehaviorSubject({
+    id: null,
+    positions:[],
+    startPoint:0
+})
 
-// currentStroke
-// .pipe(
-//     observeOn(animationFrameScheduler)
-// )
-// .subscribe(currentStroke => console.log(currentStroke))
+currentStroke
+.pipe(
+    observeOn(animationFrameScheduler)
+)
+.subscribe(currentStroke => console.log(currentStroke))
 
-// store
-// .pipe(
-//     map(store => store.strokes),
-//     distinctUntilChanged()
-// )
-// .subscribe(()=>{
-//     currentStroke
-//     .next({
-//         ...currentStroke.value,
-//         positions:[],
-//         startPoint:0
-//     })
-// })
+store
+.pipe(
+    map(store => store.strokes),
+    distinctUntilChanged()
+)
+.subscribe(()=>{
+    currentStroke
+    .next({
+        ...currentStroke.value,
+        positions:[],
+        startPoint:0
+    })
+})
 
-// store
-// .pipe(
-//     map(store => store.strokes),
-//     pairwise(),
-//     observeOn(animationFrameScheduler)
-// )
-// .subscribe(state => {
+store
+.pipe(
+    map(store => store.strokes),
+    pairwise(),
+    observeOn(animationFrameScheduler)
+)
+.subscribe(state => {
 
-//     console.log(state)
+    console.log(state)
 
-//     const [prevStrokes, nextStrokes] = state
+    const [prevStrokes, nextStrokes] = state
 
-//     if(nextStrokes.length){
-//     // if((prevStrokes.length + 1) === nextStrokes.length){
+    if(nextStrokes.length){
+    // if((prevStrokes.length + 1) === nextStrokes.length){
 
-//         const lastStroke = nextStrokes[nextStrokes.length -1]
+        const lastStroke = nextStrokes[nextStrokes.length -1]
 
-//         if (lastStroke.id === currentStroke.value.id) return 
+        if (lastStroke.id === currentStroke.value.id) return 
 
-//     }
+    }
 
-//     console.log('render')
+    console.log('render')
 
-//     // render nextStrokes
-// })
-
-
-// currentStroke      // mouseDown
-// .next({
-//     id:MathUtils.generateUUID(),
-//     positions:[],
-//     startPoint: 0
-// })
+    // render nextStrokes
+})
 
 
-// currentStroke      // mouseMove 
-// .next({
-//     ...currentStroke.value,
-//     positions:[...currentStroke.value.positions, 2, 5],
-//     startPoint: currentStroke.value.positions.length
-// })
-
-// currentStroke   // mouseMove 
-// .next({ 
-//     ...currentStroke.value,
-//     positions:[...currentStroke.value.positions, 5, 1],
-//     startPoint: currentStroke.value.positions.length
-// })
-
-// currentStroke   // mouseMove 
-// .next({
-//     ...currentStroke.value,
-//     positions:[...currentStroke.value.positions, 6, 9],
-//     startPoint: currentStroke.value.positions.length
-// })
+currentStroke      // mouseDown
+.next({
+    id:MathUtils.generateUUID(),
+    positions:[],
+    startPoint: 0
+})
 
 
-// store // mouseUp
-//     .next({
-//         strokes: [...store.value.strokes, {
-//             id:currentStroke.value.id,
-//             positions: currentStroke.value.positions
-//         }]
-//     }
-// )
+currentStroke      // mouseMove 
+.next({
+    ...currentStroke.value,
+    positions:[...currentStroke.value.positions, 2, 5],
+    startPoint: currentStroke.value.positions.length
+})
 
-// store // mouseUp
-//     .next({
-//         strokes: [...store.value.strokes, {
-//             id: 'new',
-//             positions: currentStroke.value.positions
-//         }]
-//     }
-// )
+currentStroke   // mouseMove 
+.next({ 
+    ...currentStroke.value,
+    positions:[...currentStroke.value.positions, 5, 1],
+    startPoint: currentStroke.value.positions.length
+})
+
+currentStroke   // mouseMove 
+.next({
+    ...currentStroke.value,
+    positions:[...currentStroke.value.positions, 6, 9],
+    startPoint: currentStroke.value.positions.length
+})
 
 
-// store // mouseUp
-//     .next({
-//         strokes: [...store.value.strokes, {
-//             id: 'new2',
-//             positions: currentStroke.value.positions
-//         }]
-//     }
-// )
+store // mouseUp
+    .next({
+        strokes: [...store.value.strokes, {
+            id:currentStroke.value.id,
+            positions: currentStroke.value.positions
+        }]
+    }
+)
 
-// store // mouseUp
-//     .next({
-//         strokes: [...store.value.strokes, {
-//             id: 'new3',
-//             positions: currentStroke.value.positions
-//         }]
-//     }
-// )
+store // mouseUp
+    .next({
+        strokes: [...store.value.strokes, {
+            id: 'new',
+            positions: currentStroke.value.positions
+        }]
+    }
+)
+
+
+store // mouseUp
+    .next({
+        strokes: [...store.value.strokes, {
+            id: 'new2',
+            positions: currentStroke.value.positions
+        }]
+    }
+)
+
+store // mouseUp
+    .next({
+        strokes: [...store.value.strokes, {
+            id: 'new3',
+            positions: currentStroke.value.positions
+        }]
+    }
+)
 
