@@ -7,32 +7,253 @@ import Stats from 'three/examples/jsm/libs/stats.module'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import Engine from '../DrawingEngine'
 import Store from '../App/Strore'
+import { BehaviorSubject, distinct, fromEvent, map, pairwise } from 'rxjs'
+import { MathUtils } from 'three'
 
 class App {
 
-    constructor (assets, rootElement){
+    gui = new GUI()
+    stats = new Stats()
+    viewMode = false
+    canvasList = []
+
+    store = new BehaviorSubject({
+        future:[],
+        paste:[],
+        currentState:{
+            engineLayers:[],
+            someInfo:{},
+            activeCanva: null,
+        },
+        assetsNames:[],
+        assetsPasses:[],
+    })
+
+    layer = new BehaviorSubject({
+        name: null,
+        id: null,
+        strokes:[],
+        position: null,
+        scale: null,
+    })
+
+    constructor (assets, rootElement, urls){
         this.rootElement = rootElement
         this.assets = assets
-        this.gui = new GUI()
         this.gui.width =  290
-        this.stats = new Stats()
-        this.appStore = new Store()
 
-        this.viewMode = false
-        this.canvasList = []
+        // this.store
+        // .pipe(
+        //     pairwise()
+        // )
+        // .subscribe(state => {
+
+        //     const [prev, current] = state
+
+        //     console.log('store prev', prev)
+        //     console.log('store current', current)
+        // })
+
+        // this.store
+        // .pipe(
+        //     map(state => state.paste),
+        //     distinct()
+        // )
+        // .subscribe(paste => console.log('paste', paste))
+
+        this.store
+        .next({
+            ...this.store.value,
+            assetsPasses:[...urls]
+        })
+
+        this.store
+        .next({
+            ...this.store.value,
+            assetsNames: [...assets.map( texture => texture.name )]
+        })
 
         this.init(assets)
         this.ui()
         this.addGui()
         this.render()
+
+        this.layer
+        .subscribe(state => {
+            if(state.id){
+                this.store
+                .next({
+                    ...this.store.value,
+                    paste:[...this.store.value.paste, {...this.store.value.currentState}],
+                    currentState: {
+                        ...this.store.value.currentState,
+                        engineLayers: [...this.store.value.currentState.engineLayers, {...state}] 
+                    }
+                })
+            }
+        })
+
+        this.store
+        .pipe(
+            map(state => state.currentState.engineLayers),
+            distinct()
+        )
+        .subscribe(engineLayers => {
+            this.eng.engineStore
+            .next({
+                ...this.eng.engineStore.value,
+                layers: [...engineLayers]
+            })
+        })
+
+        this.eng.engineStore
+        .pipe(
+            map(state => state.layers),
+            distinct()
+        )
+        .subscribe(layers => {
+            for (let i=0; i< layers.length; i++){
+                if(!this.canvasList.find(canvaUi => canvaUi.id === layers[i].id)){
+                    this.addCanvaUi(this.eng.getCanvaById(layers[i].id))
+                } 
+            }
+        })
+
+        this.store
+        .pipe(
+            map(state => state.currentState.activeCanva),
+            pairwise()
+        )
+        .subscribe(state => {
+            const [paste, current] = state
+
+            if(current !== paste){
+                this.eng.engineStore
+                .next({
+                    ...this.eng.engineStore.value,
+                    activeLayer: current
+                })
+            }
+
+        })
+    }
+
+    addCanvaUi(canvaInstance){
+
+        if ( this.canvasList.length < 5 ){
+
+            const config = {
+                id: null,
+                name: null,
+                domElement: null,
+                gui: null,
+                param: null
+            }
+
+            const newCanvaUi = document.createElement('div')
+            newCanvaUi.id = 'canva'
+            config.domElement = newCanvaUi
+
+            this.canvasList.push(config)
+
+            const textContent =  canvaInstance.name
+            config.name = textContent
+            config.id = canvaInstance.userData.id
+
+            const canva = canvaInstance// this.eng.createNewCanva(textContent)
+
+            config.param = {
+                visible: canva.visible,
+                attached: canva.isAttachToCamera,
+                translate: canva.translateZValue
+            }
+
+            const buttonActive = document.createElement('button')
+            buttonActive.textContent = textContent
+            buttonActive.id = 'activeButton'
+            buttonActive.name = config.id
+            // buttonActive.config = config
+
+
+            const settings = document.createElement('div')
+            settings.id = 'settings'
+
+            const gui = new GUI()
+            config.gui = gui
+            gui.name = textContent
+            gui.width = 188
+
+
+            gui.add(config.param,'visible')
+            .onChange((v) => this.eng.setVisibleCanvaByName(gui.name, v))
+
+            gui.add(config.param,'attached')
+            .onChange((v) => {
+                this.eng.setAttachToCameraActiveCanva(v)
+                if (!v) gui.__controllers[gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
+                if (v) gui.__controllers[gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'block'
+            })
+
+            gui.add(config.param,'translate',0,1,0.01)
+            .onChange((v)=>{
+                this.eng.setTranslateActiveCanva(v)
+            })
+
+            settings.appendChild(gui.domElement)
+
+            fromEvent(buttonActive, 'click')
+            .subscribe(e => {
+
+                if (this.eng.activeCanva){
+
+                    const currentCanvaId = this.eng.activeCanva.userData.id
+                    const currentConfig =  this.canvasList.find( config => config.id === currentCanvaId)
+                    const currentCanva =  currentConfig.domElement
+                    const button = currentCanva.children.activeButton
+                
+                    button.style.backgroundColor = '#d8dbdc'
+                    currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'none'
+                    currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
+                    // currentConfig.gui.remove(currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')])
+                    // currentConfig.gui.remove(currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')])
+
+                    // убрать
+                }
+
+                e.target.style.backgroundColor = '#76ca67'
+
+                this.store
+                .next({
+                    ...this.store.value,
+                    paste:[...this.store.value.paste, {...this.store.value.currentState}],
+                    currentState:{
+                        ...this.store.value.currentState,
+                        activeCanva: e.target.name  
+                    }
+                })
+
+                const targetConfig = this.canvasList.find( config => config.id === e.target.name)
+                targetConfig.gui.__controllers[targetConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'block'
+                targetConfig.gui.__controllers[targetConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'block'
+            })
+
+            newCanvaUi.appendChild(buttonActive) 
+            newCanvaUi.appendChild(settings)
+            
+            this.canvasListUi.appendChild(newCanvaUi)
+        }
+
     }
 
     ui(){
+
         this.canvasListUi = document.querySelector('#canvasList')
-        this.noneDiv = document.querySelector('.noneDiv')
-        this.noneDiv.addEventListener('click',()=>{
-            const currentCanvaName = this.eng.activeCanva.name
-            const currentConfig = this.canvasList[this.canvasList.findIndex( config => config.name === currentCanvaName)]
+
+
+        fromEvent(document.querySelector('.noneDiv'), 'click')
+        .subscribe((event) => {
+            const currentCanvaId = this.eng.activeCanva.userData.id
+            const currentConfig =  this.canvasList.find( config => config.id === currentCanvaId)
             const currentCanva =  currentConfig.domElement
             currentCanva.children.activeButton.style.backgroundColor = '#d8dbdc'
             // currentConfig.gui.remove(currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')])
@@ -40,105 +261,35 @@ class App {
 
             currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'none'
             currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
-            this.eng.setActiveCanva('none')
+
+            this.store
+            .next({
+                ...this.store.value,
+                paste:[...this.store.value.paste, {...this.store.value.currentState}],
+                currentState:{
+                    ...this.store.value.currentState,
+                    activeCanva: null  
+                }
+            })
 
         })
 
-        this.addButton = document.querySelector('.addButton')
-        this.addButton.addEventListener('click', ()=>{
-            if ( this.canvasList.length < 5 ){
+        fromEvent(document.querySelector('.addButton'),'click')
+        .subscribe(() => {
+            if (this.store.value.currentState.engineLayers.length < 5){
 
-                const config = {
-                    name: null,
-                    domElement: null,
-                    gui: null,
-                    param: null
-                }
-
-                const newCanvaUi = document.createElement('div')
-                newCanvaUi.id = 'canva'
-                config.domElement = newCanvaUi
-
-                this.canvasList.push(config)
-
-                const textContent = `Canva ${this.canvasList.length}`
-                config.name = textContent
-
-                const canva = this.eng.createNewCanva(textContent)
-
-                config.param = {
-                    visible: canva.visible,
-                    attached: canva.isAttachToCamera,
-                    translate: canva.translateZValue
-                }
-
-                const buttonActive = document.createElement('button')
-                buttonActive.textContent = textContent
-                buttonActive.id = 'activeButton'
-
-                const settings = document.createElement('div')
-                settings.id = 'settings'
-
-                const gui = new GUI()
-                config.gui = gui
-                gui.name = textContent
-                gui.width = 188
-
-
-                gui.add(config.param,'visible')
-                .onChange((v) => this.eng.setVisibleCanvaByName(gui.name, v))
-
-                gui.add(config.param,'attached')
-                .onChange((v) => {
-                    this.eng.setAttachToCameraActiveCanva(v)
-                    if (!v) gui.__controllers[gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
-                    if (v) gui.__controllers[gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'block'
-                })
-                gui.add(config.param,'translate',0,1,0.01)
-                .onChange((v)=>{
-                    this.eng.setTranslateActiveCanva(v)
+                this.layer
+                .next({
+                    ...this.layer.value,
+                    name: `Canva ${this.store.value.currentState.engineLayers.length + 1}`,
+                    id: MathUtils.generateUUID(),
                 })
 
-                
-
-
-                settings.appendChild(gui.domElement)
-
-                buttonActive.addEventListener('click',(e)=>{
-
-                    if (this.eng.activeCanva){
-
-                        const currentCanvaName = this.eng.activeCanva.name
-                        const currentConfig =  this.canvasList[this.canvasList.findIndex( config => config.name === currentCanvaName)]
-                        const currentCanva =  currentConfig.domElement
-                        const button = currentCanva.children.activeButton
-                    
-                        button.style.backgroundColor = '#d8dbdc'
-                        currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'none'
-                        currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
-                        // currentConfig.gui.remove(currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')])
-                        // currentConfig.gui.remove(currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')])
-
-                        // убрать
-                    }
-
-                    e.target.style.backgroundColor = '#76ca67'
-
-                    this.eng.setActiveCanva(e.target.textContent)
-
-                    const targetConfig = this.canvasList[this.canvasList.findIndex( config => config.name === e.target.textContent)]
-                    targetConfig.gui.__controllers[targetConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'block'
-                    targetConfig.gui.__controllers[targetConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'block'
-
-
-
-                })
-
-                newCanvaUi.appendChild(buttonActive) 
-                newCanvaUi.appendChild(settings)
-                
-                this.canvasListUi.appendChild(newCanvaUi)
             }
+        })
+
+        fromEvent(document.querySelector('.deleteButton'), 'click')
+        .subscribe(() => {
 
         })
 
@@ -211,13 +362,13 @@ class App {
         this.scene.add(this.eng)
 
 
-        this.eng.addEventListener('onDown', (event) => this.appStore.setCurrent({...event.payload}))
-        this.eng.addEventListener('onMove', (event) => this.appStore.setCurrentAttributes({...event.payload}))
-        this.eng.addEventListener('onUp', () => this.appStore.setStroke())
-        this.eng.addEventListener('setActiveCanva', (event)=> this.appStore.setActiveCanva(event.payload))
+        // this.eng.addEventListener('onDown', (event) => this.appStore.setCurrent({...event.payload}))
+        // this.eng.addEventListener('onMove', (event) => this.appStore.setCurrentAttributes({...event.payload}))
+        // this.eng.addEventListener('onUp', () => this.appStore.setStroke())
+        // this.eng.addEventListener('setActiveCanva', (event)=> this.appStore.setActiveCanva(event.payload))
 
-        this.appStore.addEventListener('onUpdateStore', (event)=> console.log(event.store))
-        this.appStore.addEventListener('onUpdateActiveCanva', (event)=> console.log(event.name))
+        // this.appStore.addEventListener('onUpdateStore', (event)=> console.log(event.store))
+        // this.appStore.addEventListener('onUpdateActiveCanva', (event)=> console.log(event.name))
         // this.appStore.addEventListener('onSaveStroke',(event) => console.log(event.strokes))
 
         console.log(this.eng)
@@ -266,9 +417,11 @@ class App {
 
 
     }
+
     setCameraToDef(){
         this.camera.copy(this.parseCamera)
     }
+
     saveCamera(){
         const loader = new THREE.ObjectLoader()
         const cameraPDef = this.camera.toJSON()

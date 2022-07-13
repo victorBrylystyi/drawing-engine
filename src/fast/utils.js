@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 
-
 const viewPointP = new THREE.Vector3()
 const viewPoint = new THREE.Vector3()
 

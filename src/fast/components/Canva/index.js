@@ -1,4 +1,5 @@
 
+import { animationFrameScheduler, BehaviorSubject, distinct, observeOn } from 'rxjs'
 import * as THREE from 'three'
 
 class Canva extends THREE.Object3D {
@@ -7,6 +8,8 @@ class Canva extends THREE.Object3D {
     isAttachToCamera = true
     translateZValue = 0 
     isAddToEngine = false
+    strokes = new BehaviorSubject([])
+
 
     constructor(engine,name){
         super()
@@ -29,6 +32,32 @@ class Canva extends THREE.Object3D {
         this.mainLayer.name = 'mainLayer'
         this.add(this.mainLayer)
         this.visible = true
+
+        this.strokes
+        .pipe(
+            distinct()
+        )
+        .subscribe(state => {
+
+            console.log('canva', state)
+
+            // this.engine.engineStore
+            // .next({
+            //     ...this.engine.engineStore.value,
+
+            // })
+
+        })
+
+
+
+        
+        // this.strokes
+        // .pipe(
+        //     observeOn(animationFrameScheduler)
+        // )
+        // .subscribe(currentStroke => {})
+
     }
     updateFromCamera(camera){
 

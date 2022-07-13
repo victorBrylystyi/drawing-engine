@@ -68,7 +68,7 @@ class LoadApp {
     }
     goDrawEngine (){
         this.rootElement.removeChild( this.loadElement.holder )
-        const app = new App(this.assets,this.rootElement)
+        const app = new App(this.assets,this.rootElement, this.urls)
     }
 
 }

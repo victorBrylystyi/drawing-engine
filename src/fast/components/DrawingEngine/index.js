@@ -4,7 +4,28 @@ import { FullScreenQuad } from 'three/examples/jsm/postprocessing/Pass'
 import Canva from '../Canva'
 import { lerp } from 'three/src/math/MathUtils'
 import WorkLayer from '../WorkLayer'
-import DrawingStore from '../Store'
+// import DrawingStore from '../Store'
+import { animationFrameScheduler, BehaviorSubject, distinct, fromEvent, map, observeOn, pairwise } from 'rxjs'
+import { MathUtils } from 'three'
+
+const init = {
+    id: null,
+    attributes:{
+        position:[],
+        pressure: [],
+        tilt:[],
+    }, 
+    brush: null,
+    grain: null,
+    size: 0,
+    brushColor: {
+        r:0,
+        g:0,
+        b:0,
+        a:1,
+    }, 
+    opacity: 1,
+}
 
 class Engine extends THREE.Object3D {
 
@@ -22,8 +43,15 @@ class Engine extends THREE.Object3D {
     defBrushSize = 50
     viewMode = false
     canvaList = []
-    store = new DrawingStore('engineStore')
-    drawList = []
+    activeCanva = null
+    // store = new DrawingStore('engineStore')
+
+    engineStore = new BehaviorSubject({
+        activeLayer: null,
+        layers: []
+    })
+
+    currentStroke = new BehaviorSubject(JSON.parse(JSON.stringify({...init})))
 
     constructor({renderer, canvas, brushAssets, appRef}){
         super()
@@ -32,8 +60,6 @@ class Engine extends THREE.Object3D {
         this.canvas = canvas
         this.brushAssets = brushAssets
         this.core = appRef
-
-        this.activeCanva =  null // ссылка на холст из children
 
         this.workLayer = new WorkLayer(this)
 
@@ -165,15 +191,117 @@ class Engine extends THREE.Object3D {
 
         this.drawScene.add(this.brush)
 
-        this.canvas.addEventListener('pointerdown', (event) => this._down(event))
-        this.canvas.addEventListener('pointermove', (event) => this._move(event))
-        this.canvas.addEventListener('pointerup', () => this._upHandler())
 
-        this.addEventListener('onDown', (event) => this.store.setCurrent({...event.payload}))
-        this.addEventListener('onMove', (event) => this.store.setCurrentAttributes({...event.payload}))
-        this.addEventListener('onUp', () => this.store.setStroke())
+        fromEvent(this.canvas, 'pointerdown')
+        .subscribe((event) => this._down(event))
 
-        this.store.addEventListener('onSaveStroke',(event) => console.log(event.strokes))
+        fromEvent(this.canvas, 'pointermove')
+        .subscribe((event) => this._move(event))
+
+        fromEvent(this.canvas, 'pointerup')
+        .subscribe(() => this._upHandler())
+
+        // this.engineStore
+        // .subscribe(state => console.log('engLayers', state))
+
+        this.engineStore
+        .pipe(
+            map( state => state.layers ),
+            distinct(),
+        )
+        .subscribe(layers => {
+            console.log('engine', layers)
+            for (let i=0; i < layers.length; i++){
+                if(! this.canvaList.find(canva => canva.userData.id === layers[i].id)){
+                    const canva = this.createNewCanva(layers[i].name)
+                    canva.userData = {
+                        ...canva.userData,
+                        id: layers[i].id
+                    }
+                    this.canvaList.push(canva)
+                    
+                    if(layers[i].position) canva.position.set(layers[i].position[0], layers[i].position[1],layers[i].position[2])
+
+                }
+            }
+        })
+
+        this.engineStore
+        .pipe(
+            map( state => state.activeLayer ),
+            pairwise(),
+        )
+        .subscribe(state => {
+
+            const [paste, current] = state
+
+            if(current !== paste){
+                this.setActiveCanvaById(current)
+            }
+        })
+
+        this.currentStroke
+        .pipe(
+            distinct()
+        )
+        .subscribe(state => console.log(state))
+
+
+        // this.engineStore
+        // .pipe(
+        //     map(state => state.layers)
+        // )
+        // .subscribe(layers => console.log('engine layers', layers))
+
+        // this.currentStroke
+        // .pipe(
+        //     observeOn(animationFrameScheduler)
+        // )
+        // .subscribe(currentStroke => console.log('change current stroke', currentStroke))
+
+        // this.store
+        // .pipe(
+        //     map(store => store.strokes),
+        //     pairwise(),
+        //     observeOn(animationFrameScheduler)
+        // )
+        // .subscribe(state => {
+
+        //     console.log('store', state)
+
+        //     const [prevStrokes, nextStrokes] = state
+
+        //     if(nextStrokes.length){
+        //     // if((prevStrokes.length + 1) === nextStrokes.length){
+
+        //         const lastStroke = nextStrokes[nextStrokes.length -1]
+
+        //         if (lastStroke.id === this.currentStroke.value.id) return 
+
+        //     }
+
+        //     console.log('render')
+
+        //     // render nextStrokes
+        // })
+
+        // this.canvas.addEventListener('pointerdown', (event) => this._down(event))
+        // this.canvas.addEventListener('pointermove', (event) => this._move(event))
+        // this.canvas.addEventListener('pointerup', () => this._upHandler())
+
+
+
+        // this.addEventListener('onDown', (event) => this.store.setCurrent({...event.payload}))
+        // this.addEventListener('onMove', (event) => this.store.setCurrentAttributes({...event.payload}))
+        // this.addEventListener('onUp', () => this.store.setStroke())
+
+        // this.store.addEventListener('onSaveStroke',(event) => console.log(event.strokes))
+
+    }
+
+    getCanvaById(id){
+
+        return this.canvaList.find(canva => canva.userData.id === id)
 
     }
 
@@ -184,30 +312,61 @@ class Engine extends THREE.Object3D {
 
     _onDown(){
 
-        const currentData = this.store.getInitStore()  
 
-        currentData.id = THREE.MathUtils.generateUUID()
+        // const currentData = this.store.getInitStore()  
 
-        currentData.brush = this.brush.material.uniforms.brushMap.value.name 
-        currentData.grain = this.brush.material.uniforms.grainMap.value.name 
-        currentData.canvaName = this.activeCanva.name
-        currentData.size = this.brush.material.uniforms.brushSize.value
+        // currentData.id = THREE.MathUtils.generateUUID()
 
-        currentData.brushColor.r = this.brush.material.uniforms.color.value.x
-        currentData.brushColor.g = this.brush.material.uniforms.color.value.y
-        currentData.brushColor.b = this.brush.material.uniforms.color.value.z
-        currentData.brushColor.a = this.brush.material.uniforms.color.value.w
+        // currentData.brush = this.brush.material.uniforms.brushMap.value.name 
+        // currentData.grain = this.brush.material.uniforms.grainMap.value.name 
+        // currentData.canvaName = this.activeCanva.name
+        // currentData.size = this.brush.material.uniforms.brushSize.value
 
-        currentData.opacity =  this.workLayer.tempLayer.material.opacity
+        // currentData.brushColor.r = this.brush.material.uniforms.color.value.x
+        // currentData.brushColor.g = this.brush.material.uniforms.color.value.y
+        // currentData.brushColor.b = this.brush.material.uniforms.color.value.z
+        // currentData.brushColor.a = this.brush.material.uniforms.color.value.w
 
-        return currentData
+        // currentData.opacity =  this.workLayer.tempLayer.material.opacity
+
+        // return currentData
+
+        // this.currentStroke      // mouseDown
+        // .next({
+        //     ...this.currentStroke.value,
+        //     id: MathUtils.generateUUID()
+        // })
     }
 
     _onMove(position = [], pressure = 0.5, tilt = 0){
+
+        // this.currentStroke      // mouseMove 
+        // .next({
+        //     ...this.currentStroke.value,
+        //     positions: [...this.currentStroke.value.positions, [...position]],
+        //     pressure: [...this.currentStroke.value.pressure, pressure],
+        //     tilt: [...this.currentStroke.value.pressure, tilt],
+        //     startPoint: this.currentStroke.value.positions.length
+        // })
+
+
         return {position, pressure, tilt}
     }
 
     _onUp(){
+
+        // const newStroke = {
+        //     id: this.currentStroke.value.id,
+        //     positions: this.currentStroke.value.positions,
+        //     pressure: this.currentStroke.value.pressure,
+        //     tilt: this.currentStroke.value.tilt
+        // }
+
+        // this.store // mouseUp
+        // .next({
+        //     strokes: [...this.store.value.strokes, newStroke ]
+        // })
+
         return 'onUpSettings'
     }
 
@@ -299,7 +458,13 @@ class Engine extends THREE.Object3D {
 
     _foundCanvaByName(name){
 
-        return this.children[this.children.findIndex( child => child.name === name)] || this.canvaList[this.canvaList.findIndex( child => child.name === name)]
+        return name !== 'none' ? this.children[this.children.findIndex( child => child.name === name)] || this.canvaList[this.canvaList.findIndex( child => child.name === name)] : null
+    }
+
+    _foundCanvaById(id){
+
+        return id ? this.children.find( child => child.userData.id === id) || this.canvaList.find( child => child.userData.id === id) : null
+        
     }
 
     setVisibleActiveCanva(visu){
@@ -368,7 +533,6 @@ class Engine extends THREE.Object3D {
         this.addToCanvaList(newCanva)
 
         return newCanva
-
     }
 
     setAttachToCameraActiveCanva(v){
@@ -398,9 +562,59 @@ class Engine extends THREE.Object3D {
 
     }
 
+    setActiveCanvaById(id = null){
+
+        if (!id) {
+
+            this.activeCanva = null
+
+        } 
+
+        const canva =  this._foundCanvaById(id)
+
+
+
+        if (canva){
+            this.activeCanva = canva
+
+            // this.activeCanva.add(this.workLayer)
+            // const deltaZ = this.activeCanva.mainLayer.position.z - this.workLayer.tempLayer.position.z
+            // console.log(deltaZ)
+
+            // this.setParallelTranslate(this.workLayer, deltaZ)
+            this.activeCanva.attach(this.workLayer) // templayer в прошлой позиции как и зазмер 
+    
+            this.renderer.setRenderTarget(this.workLayer.mainLayerRT)
+            this.renderer.setClearColor(new THREE.Color(0x000000), 0)
+            this.renderer.clearColor()
+    
+            this.quad2.material.map = this.activeCanva.mainLayer.material.map
+            this.quad2.render(this.renderer)
+    
+            this.renderer.setRenderTarget(null)
+
+            if (!this.activeCanva.isAddToEngine) this.activeCanva.updateFromCamera(this.core.camera) /// !!!
+
+            // this.activeCanva.updateFromCamera(this.core.camera) /// !!!
+
+
+            this.activeCanva.isAddToEngine = true
+
+            // console.log('main',this.activeCanva.mainLayer.position.clone())
+            // console.log('temp',this.workLayer.tempLayer.position.clone())
+
+
+        }
+        console.log(canva)
+
+        // this.dispatchEvent({
+        //     type:'setActiveCanva',
+        //     payload: (name !== 'none') && (canva) ? name : null
+        // })
+
+    }
+
     setActiveCanva(name = ''){
-
-
 
         if (name === 'none') {
             // if (this.activeCanva) this.activeCanva.visible = false
@@ -446,10 +660,10 @@ class Engine extends THREE.Object3D {
         }
         console.log(canva)
 
-        this.dispatchEvent({
-            type:'setActiveCanva',
-            payload: (name !== 'none') && (canva) ? name : null
-        })
+        // this.dispatchEvent({
+        //     type:'setActiveCanva',
+        //     payload: (name !== 'none') && (canva) ? name : null
+        // })
 
     }
 
@@ -495,20 +709,38 @@ class Engine extends THREE.Object3D {
     
                 this._renderMove()
 
-
-                this.dispatchEvent({
-                    type:'onDown',
-                    payload: this._onDown()
+                this.currentStroke
+                .next({
+                    ...this.currentStroke.value,
+                    id: MathUtils.generateUUID(),
+                    attributes:{
+                        position: [...this.currentStroke.value.attributes.position, [pointerWorldPos.x,pointerWorldPos.y,pointerWorldPos.z]],
+                        pressure: [...this.currentStroke.value.attributes.pressure, this.brush.material.uniforms.pressure.value],
+                        tilt:[...this.currentStroke.value.attributes.tilt, 0]
+                    },
+                    brush: this.brush.material.uniforms.brushMap.value.name,
+                    grain: this.brush.material.uniforms.grainMap.value.name,
+                    size: this.brush.material.uniforms.brushSize.value,
+                    brushColor:{
+                        r: this.brush.material.uniforms.color.value.x,
+                        g: this.brush.material.uniforms.color.value.y,
+                        b: this.brush.material.uniforms.color.value.z,
+                        a: this.brush.material.uniforms.color.value.w
+                    },
+                    opacity: this.workLayer.tempLayer.material.opacity
                 })
 
-                this.dispatchEvent({
-                    type:'onMove',
-                    payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0], this.brush.material.uniforms.pressure.value)
-                })
+                // this.dispatchEvent({
+                //     type:'onDown',
+                //     payload: this._onDown()
+                // })
+
+                // this.dispatchEvent({
+                //     type:'onMove',
+                //     payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0], this.brush.material.uniforms.pressure.value)
+                // })
 
                 // } 
-
-                // this.hasEventListener('onDown')
             } 
         }
     }
@@ -559,10 +791,20 @@ class Engine extends THREE.Object3D {
                             this.brush.setMatrixAt(i + this.pointerCount, matrix)
                             this.brush.instanceMatrix.needsUpdate = true
 
-                            this.dispatchEvent({
-                                type:'onMove',
-                                payload: this._onMove([x,y,0],this.brush.material.uniforms.pressure.value)
+                            this.currentStroke
+                            .next({
+                                ...this.currentStroke.value,
+                                attributes:{
+                                    position: [...this.currentStroke.value.attributes.position, [x, y, 0]],
+                                    pressure: [...this.currentStroke.value.attributes.pressure, this.brush.material.uniforms.pressure.value],
+                                    tilt:[...this.currentStroke.value.attributes.tilt, 0]
+                                }
                             })
+
+                            // this.dispatchEvent({
+                            //     type:'onMove',
+                            //     payload: this._onMove([x,y,0],this.brush.material.uniforms.pressure.value)
+                            // })
                         }
                         this.pointerCount += distance
                     } else {
@@ -572,10 +814,20 @@ class Engine extends THREE.Object3D {
                         this.brush.setMatrixAt(this.brush.count-1, matrix)
                         this.brush.instanceMatrix.needsUpdate = true
 
-                        this.dispatchEvent({
-                            type:'onMove',
-                            payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0],this.brush.material.uniforms.pressure.value)
+                        this.currentStroke
+                        .next({
+                            ...this.currentStroke.value,
+                            attributes:{
+                                position: [...this.currentStroke.value.attributes.position, [pointerWorldPos.x, pointerWorldPos.y, pointerWorldPos.z]],
+                                pressure: [...this.currentStroke.value.attributes.pressure, this.brush.material.uniforms.pressure.value],
+                                tilt:[...this.currentStroke.value.attributes.tilt, 0]
+                            }
                         })
+
+                        // this.dispatchEvent({
+                        //     type:'onMove',
+                        //     payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0],this.brush.material.uniforms.pressure.value)
+                        // })
                     }
 
 
@@ -596,10 +848,20 @@ class Engine extends THREE.Object3D {
             this._renderUp()
             this.setClearTempLayer()
 
-            this.dispatchEvent({
-                type:'onUp',
-                payload: this._onUp()
-            })
+            this.activeCanva.strokes
+            .next([
+                ...this.activeCanva.strokes.value, {...this.currentStroke.value}
+            ])
+
+            this.currentStroke
+            .next(JSON.parse(JSON.stringify({...init})))
+
+            
+
+            // this.dispatchEvent({
+            //     type:'onUp',
+            //     payload: this._onUp()
+            // })
         }
 
         this.paint = false
@@ -643,12 +905,6 @@ class Engine extends THREE.Object3D {
         if (!this.viewMode && this.shouldDraw && this.activeCanva){
             this._renderMove()
             this.shouldDraw = false
-        }
-
-        if (this.drawList.length !== 0){
-
-
-
         }
 
     }
