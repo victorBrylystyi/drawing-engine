@@ -21,9 +21,8 @@ class App {
         future:[],
         paste:[],
         currentState:{
-            engineLayers:[],
-            someInfo:{},
             activeCanva: null,
+            engineLayers:[],
         },
         assetsNames:[],
         assetsPasses:[],
@@ -41,6 +40,7 @@ class App {
         this.rootElement = rootElement
         this.assets = assets
         this.gui.width =  290
+        window.$r = this.store
 
         // this.store
         // .pipe(
@@ -62,6 +62,12 @@ class App {
         // .subscribe(paste => console.log('paste', paste))
 
         this.store
+        .pipe(
+            distinct()
+        )
+        .subscribe(state => console.log('newIntStore', state))
+
+        this.store
         .next({
             ...this.store.value,
             assetsPasses:[...urls]
@@ -77,6 +83,57 @@ class App {
         this.ui()
         this.addGui()
         this.render()
+
+        // this.eng.engineStore
+        // .pipe(
+        //     map( state => state.layers.find(layer => layer.id === this.store.value.currentState.activeCanva)),
+        //     // distinct(),
+        //     // map( layers =>  layers.find(layer => layer.id === this.store.value.currentState.activeCanva)),
+        //     map(activeLayer => activeLayer ? activeLayer.strokes : null),
+        //     distinct()
+
+        // )
+        // .subscribe(stroke => {
+        //     // 
+        //     console.log('newStroke', stroke, this.store.getValue())
+
+        //     if(stroke){
+
+        //         const n =  this.store.value.currentState.engineLayers.map(layer => {
+        //             if (layer.id !== this.store.value.currentState.activeCanva) return layer
+        //             return {
+        //                 ...layer,
+        //                 strokes: [...stroke]
+        //             }
+        //         })
+        //         console.log(n)
+
+        //         // this.store
+        //         // .next({
+        //         //     ...this.store.value,
+        //         //     currentState:{
+        //         //         ...this.store.value.currentState,
+        //         //         engineLayers: n
+        //         //     }
+        //         // })
+
+        //     }
+            
+
+
+
+        //     // if (stroke){
+        //     //     this.store
+        //     //     .next({
+        //     //         ...this.store.value,
+        //     //         currentState:{
+        //     //             ...this.store.value.currentState,
+        //     //             engineLayers: [...n]
+        //     //         }
+        //     //     })
+        //     // }
+
+        // })
 
         this.layer
         .subscribe(state => {
@@ -357,6 +414,18 @@ class App {
             appRef:this,
             brushAssets:assets,
         })
+
+        this.eng.addEventListener('change', (value)=>{
+            console.log('dispatch', value.payload)
+            // value - this.eng.engineStore.getValue()
+            this.store.next({
+                ...this.store.value,
+                currentState:{
+                    ...this.store.value.currentState,
+                    engineLayers: value.payload.layers
+                }
+            }) // if redux - dispatch 
+        } )
 
 
         this.scene.add(this.eng)

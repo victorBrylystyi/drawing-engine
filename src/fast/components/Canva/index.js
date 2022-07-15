@@ -2,6 +2,7 @@
 import { animationFrameScheduler, BehaviorSubject, distinct, observeOn } from 'rxjs'
 import * as THREE from 'three'
 
+
 class Canva extends THREE.Object3D {
 
     isCanva = true
@@ -9,10 +10,15 @@ class Canva extends THREE.Object3D {
     translateZValue = 0 
     isAddToEngine = false
     strokes = new BehaviorSubject([])
+    idStrokes = new BehaviorSubject([])
 
 
-    constructor(engine,name){
+
+    constructor(engine,name, id){
         super()
+        this.userData = {
+            id
+        }
         this.name = name
         this.engine = engine
         this.mainLayer = new THREE.Mesh(
@@ -33,30 +39,35 @@ class Canva extends THREE.Object3D {
         this.add(this.mainLayer)
         this.visible = true
 
+
         this.strokes
         .pipe(
-            distinct()
+            distinct(),
+                observeOn(animationFrameScheduler)
         )
-        .subscribe(state => {
+        .subscribe(v => {
 
-            console.log('canva', state)
 
-            // this.engine.engineStore
-            // .next({
-            //     ...this.engine.engineStore.value,
+            if (v.length !== this.idStrokes.value.length || v.map(stroke => this.idStrokes.value.find(id => id === stroke.id)).find(elem => elem === undefined)){
+                console.log('redraw', v)
+                this.engine.drawByStore(this.userData.id, v)
+            } 
 
-            // })
+            // проверка на равенство количества штрихов 
+            // если количество штрихов не совпадает то перерисовать 
+            // иначе, проверка на если хотябы 1 id нет из v в сравнении с this.idStrokes -> перерисовать 
+            
+
+            this.idStrokes
+            .next(v.map(stroke => stroke.id))
 
         })
 
-
-
-        
-        // this.strokes
-        // .pipe(
-        //     observeOn(animationFrameScheduler)
-        // )
-        // .subscribe(currentStroke => {})
+        this.idStrokes
+        .pipe(
+            distinct()
+        )
+        .subscribe(v => console.log('canva', v ))
 
     }
     updateFromCamera(camera){
