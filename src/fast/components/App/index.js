@@ -6,9 +6,11 @@ import { GUI } from 'dat.gui'
 import Stats from 'three/examples/jsm/libs/stats.module'
 import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls'
 import Engine from '../DrawingEngine'
-import Store from '../App/Strore'
+// import Store from '../App/Strore'
 import { BehaviorSubject, distinct, fromEvent, map, pairwise } from 'rxjs'
 import { MathUtils } from 'three'
+import savedStore from '../../store.json'
+import fs from 'fs'
 
 class App {
 
@@ -17,11 +19,12 @@ class App {
     viewMode = false
     canvasList = []
 
+    activeCanva = new BehaviorSubject(null)
+
     store = new BehaviorSubject({
         future:[],
         paste:[],
         currentState:{
-            activeCanva: null,
             engineLayers:[],
         },
         assetsNames:[],
@@ -41,25 +44,6 @@ class App {
         this.assets = assets
         this.gui.width =  290
         window.$r = this.store
-
-        // this.store
-        // .pipe(
-        //     pairwise()
-        // )
-        // .subscribe(state => {
-
-        //     const [prev, current] = state
-
-        //     console.log('store prev', prev)
-        //     console.log('store current', current)
-        // })
-
-        // this.store
-        // .pipe(
-        //     map(state => state.paste),
-        //     distinct()
-        // )
-        // .subscribe(paste => console.log('paste', paste))
 
         this.store
         .pipe(
@@ -83,57 +67,6 @@ class App {
         this.ui()
         this.addGui()
         this.render()
-
-        // this.eng.engineStore
-        // .pipe(
-        //     map( state => state.layers.find(layer => layer.id === this.store.value.currentState.activeCanva)),
-        //     // distinct(),
-        //     // map( layers =>  layers.find(layer => layer.id === this.store.value.currentState.activeCanva)),
-        //     map(activeLayer => activeLayer ? activeLayer.strokes : null),
-        //     distinct()
-
-        // )
-        // .subscribe(stroke => {
-        //     // 
-        //     console.log('newStroke', stroke, this.store.getValue())
-
-        //     if(stroke){
-
-        //         const n =  this.store.value.currentState.engineLayers.map(layer => {
-        //             if (layer.id !== this.store.value.currentState.activeCanva) return layer
-        //             return {
-        //                 ...layer,
-        //                 strokes: [...stroke]
-        //             }
-        //         })
-        //         console.log(n)
-
-        //         // this.store
-        //         // .next({
-        //         //     ...this.store.value,
-        //         //     currentState:{
-        //         //         ...this.store.value.currentState,
-        //         //         engineLayers: n
-        //         //     }
-        //         // })
-
-        //     }
-            
-
-
-
-        //     // if (stroke){
-        //     //     this.store
-        //     //     .next({
-        //     //         ...this.store.value,
-        //     //         currentState:{
-        //     //             ...this.store.value.currentState,
-        //     //             engineLayers: [...n]
-        //     //         }
-        //     //     })
-        //     // }
-
-        // })
 
         this.layer
         .subscribe(state => {
@@ -176,9 +109,8 @@ class App {
             }
         })
 
-        this.store
+        this.activeCanva
         .pipe(
-            map(state => state.currentState.activeCanva),
             pairwise()
         )
         .subscribe(state => {
@@ -191,7 +123,6 @@ class App {
                     activeLayer: current
                 })
             }
-
         })
     }
 
@@ -279,15 +210,18 @@ class App {
 
                 e.target.style.backgroundColor = '#76ca67'
 
-                this.store
-                .next({
-                    ...this.store.value,
-                    paste:[...this.store.value.paste, {...this.store.value.currentState}],
-                    currentState:{
-                        ...this.store.value.currentState,
-                        activeCanva: e.target.name  
-                    }
-                })
+                this.activeCanva
+                .next(e.target.name )
+
+                // this.store
+                // .next({
+                //     ...this.store.value,
+                //     paste:[...this.store.value.paste, {...this.store.value.currentState}],
+                //     currentState:{
+                //         ...this.store.value.currentState,
+                //         activeCanva: e.target.name  
+                //     }
+                // })
 
                 const targetConfig = this.canvasList.find( config => config.id === e.target.name)
                 targetConfig.gui.__controllers[targetConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'block'
@@ -306,7 +240,6 @@ class App {
 
         this.canvasListUi = document.querySelector('#canvasList')
 
-
         fromEvent(document.querySelector('.noneDiv'), 'click')
         .subscribe((event) => {
             const currentCanvaId = this.eng.activeCanva.userData.id
@@ -319,15 +252,8 @@ class App {
             currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'attached')].domElement.style.display = 'none'
             currentConfig.gui.__controllers[currentConfig.gui.__controllers.findIndex(controllers => controllers.property === 'translate')].domElement.style.display = 'none'
 
-            this.store
-            .next({
-                ...this.store.value,
-                paste:[...this.store.value.paste, {...this.store.value.currentState}],
-                currentState:{
-                    ...this.store.value.currentState,
-                    activeCanva: null  
-                }
-            })
+            this.activeCanva
+            .next(null)
 
         })
 
@@ -349,6 +275,40 @@ class App {
         .subscribe(() => {
 
         })
+
+        fromEvent(document.querySelector('.undo'), 'click')
+        .subscribe(() => {
+            // const store = this.store.getValue()
+            // const newCurrentState = store.paste[store.paste.length-1]
+        })
+
+        fromEvent(document.querySelector('.redo'), 'click')
+        .subscribe(() => {
+
+        })
+
+
+
+        fromEvent(document.querySelector('.save'), 'click')
+        .subscribe(() => {
+
+            // const newPath = '../../store.json'
+
+            // try {
+            //     fs.writeFileSync(newPath, JSON.stringify(this.store.getValue()))
+            // } catch (err) {
+            //     console.error(err)
+            // }
+        })
+
+        fromEvent(document.querySelector('.restore'), 'click')
+        .subscribe(() => {
+            // console.log(savedStore)
+            this.store
+            .next(savedStore)
+        })
+
+
 
     }
 
@@ -396,15 +356,7 @@ class App {
         this.box1 = new THREE.Mesh( new THREE.BoxGeometry( 0.2, 0.2, 0.2 ), new THREE.MeshNormalMaterial() )
         this.box1.position.set(0,0,0)
 
-        // console.log(this.renderer.capabilities.maxTextureSize)
-
         this.scene.add(this.box1)
-
-        // const A = new THREE.Vector3(-1,1, 0.9795075974851257)
-        // const B = new THREE.Vector3(1,1, 0.9795075974851257)
-        // const C = new THREE.Vector3(-1,-1,0.9795075974851257)
-        // const D = new THREE.Vector3(1,-1,0.9795075974851257)
-
 
         this.saveCamera()
 
@@ -417,28 +369,19 @@ class App {
 
         this.eng.addEventListener('change', (value)=>{
             console.log('dispatch', value.payload)
-            // value - this.eng.engineStore.getValue()
+            // if redux - dispatch 
             this.store.next({
                 ...this.store.value,
+                paste:[...this.store.value.paste, {...this.store.value.currentState}],
                 currentState:{
                     ...this.store.value.currentState,
                     engineLayers: value.payload.layers
                 }
-            }) // if redux - dispatch 
+            }) 
         } )
 
 
         this.scene.add(this.eng)
-
-
-        // this.eng.addEventListener('onDown', (event) => this.appStore.setCurrent({...event.payload}))
-        // this.eng.addEventListener('onMove', (event) => this.appStore.setCurrentAttributes({...event.payload}))
-        // this.eng.addEventListener('onUp', () => this.appStore.setStroke())
-        // this.eng.addEventListener('setActiveCanva', (event)=> this.appStore.setActiveCanva(event.payload))
-
-        // this.appStore.addEventListener('onUpdateStore', (event)=> console.log(event.store))
-        // this.appStore.addEventListener('onUpdateActiveCanva', (event)=> console.log(event.name))
-        // this.appStore.addEventListener('onSaveStroke',(event) => console.log(event.strokes))
 
         console.log(this.eng)
 
@@ -591,289 +534,7 @@ class App {
             .onChange( ( pressure ) => {
                 if (this.params['Pressure settings'].adjust) this.eng.setPressure( pressure )
             })    
-    
 
-
-            // this.gui.add( this.params, 'Attach to camera', 10, 100, 1 )
-            // .onChange((s) => {
-
-            //     this.eng.setAttachToCameraActiveCanva(s)
-
-            //     // if (!s) { 
-            //     //     this.gui.remove(this.gui.__controllers[this.gui.__controllers.findIndex( child => child.property === "translate")])
-            //     // }
-            //     // else {
-            //     //     this.gui.add( this.params, 'translate', 0, 1, 0.1 )
-            //     //     .onChange((z) => this.eng.setTranslateActiveCanva(z))
-            //     // }
-            // })
-
-            
-            // this.gui.add( this.params, 'translate', 0, 1, 0.1 )
-            // .onChange((z) => this.eng.setTranslateActiveCanva(z))
-    
-            // this.gui.add( this.drawingEngine.paramsCircle, 'Rotation', -180, 180, 1 )
-            // .onChange((deg) => {
-            //     this.drawingEngine.brushMesh.rotation.z = deg * DEG2RAD
-            // })
-    
-            // const rlstPlaneSett = {
-            //     skew:{
-            //         'X': 0,
-            //         prev: 0,
-            //         // matrixDef:this.resultPlane.matrix.clone()
-            //     },
-            //     t:{
-            //         'Z':0,
-            //         fw:0,
-            //         fh:0
-            //     }
-            // }
-
-            // const rsltPlZ = 0//this.resultPlane.position.z 
-    
-            // this.gui.add( this.params, 'Mode', [
-            //     'Drawing',
-            //     'View'
-            // ])
-            // .onChange( ( mode ) => {
-            //     this.viewMode = (mode === 'View') 
-            //     this.eng.viewMode = (mode === 'View') 
-
-            //     if (!this.viewMode){
-            //         // resultPlane.position.set(0,0,0)
-            //         // tempResulpPlane.position.set(0,0,0)
-    
-            //         // this.setCameraToDef()
-
-            //         if (this.gui.__folders['Plane settings']){
-            //             this.gui.removeFolder(this.gui.__folders['Plane settings'])
-            //         }
-            //         // tempResulpPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
-            //         // resultPlane.matrix.copy(rlstPlaneSett.skew.matrixDef.clone())
-    
-            //     } else {
-            //         // cameraP.position.z = 1.01
-            //         if (this.params['Attach to camera']){
-
-                        
-            //             const mainFolder = this.gui.addFolder('Plane settings')
-            //             // const skewFolder = mainFolder.addFolder('Skew')
-            //             const translatFolder = mainFolder.addFolder('Translate')
-            //             // const rotFolder = mainFolder.addFolder('Rotation')
-            //             // const scaleFolder = mainFolder.addFolder('Scale')
-        
-        
-            //             // skewFolder.add(rlstPlaneSett.skew,'X',-10,10,0.01)
-            //             // .onChange((x) => {
-        
-            //             //     // const neg = -1 
-            //             //     // const pos = 1
-        
-            //             //     // let dir = 1
-        
-            //             //     // if (x===rlstPlaneSett.skew.prev) return
-        
-            //             //     // if (x>0){
-            //             //     //     if (x>rlstPlaneSett.skew.prev){
-            //             //     //         dir = pos 
-            //             //     //     } else {
-            //             //     //         dir = neg
-            //             //     //     }
-        
-        
-            //             //     // } else if (x<0){
-            //             //     //     if (x<rlstPlaneSett.skew.prev){
-            //             //     //         dir = pos 
-            //             //     //     } else {
-            //             //     //         dir = neg
-            //             //     //     }
-        
-            //             //     // }
-        
-            //             //     // console.log(dir)
-        
-            //             //     // const newX = x * dir 
-        
-            //             //     // const matrix = new THREE.Matrix4();
-        
-            //             //     // matrix.makeShear(0, newX*DEG2RAD,0, 0, 0, 0);
-            //             //     // // console.log(resultPlane.matrixAutoUpdate )
-            //             //     // // apply shear matrix to geometry                  
-            //             //     // resultPlane.matrix.multiply(matrix.clone())
-            //             //     // tempResulpPlane.matrix.multiply(matrix.clone())
-            //             //     // resultPlane.matrixAutoUpdate=false
-            //             //     // tempResulpPlane.matrixAutoUpdate=false
-        
-            //             //     // rlstPlaneSett.skew.prev = x
-            //             // })
-        
-            //             translatFolder.add(rlstPlaneSett.t,'Z',0,1,0.01)
-            //             .onChange((z) => {
-        
-        
-        
-            //                 const h = 2 * Math.tan((this.camera.fov) * (Math.PI/360)) * (this.camera.near + z) 
-            //                 const w = h * this.camera.aspect
-            //                 const buff = [...this.resultPlane.geometry.getAttribute('position').array]
-            //                 const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
-            //                 // const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
-            //                 // resultPlane.translateZ(-z)
-            //                 // resultPlane.scale.set(w/fw,h/fh,h/fh) //.scale.set(w/fw,h/fh,1)
-            //                 // tempResulpPlane.scale.set(w/fw,h/fh,h/fh)
-            //                 // const m = cameraP.projectionMatrix.clone().makeTranslation(0,0,z)
-            //                 // const vert = new Float32Array( buff.map((item,index) => { 
-            //                 //     if (index === 2 || index === 5 || index === 8 || index === 11) return item 
-            //                 //     return item * Math.abs(w/fw)
-            //                 // } ) )
-            //                 // resultPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
-            //                 // tempResulpPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
-        
-            //                 this.resultPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1) //.scale.set(w/fw,h/fh,1)
-            //                 this.tempResulpPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
-        
-                    
-        
-            //                 this.resultPlane.geometry.attributes.position.needsUpdate = true
-            //                 this.tempResulpPlane.geometry.attributes.position.needsUpdate = true
-        
-                            
-            //                 this.resultPlane.position.z = rsltPlZ - z
-            //                 this.tempResulpPlane.position.z = rsltPlZ - z
-        
-            //             })
-            //         }
-
-                    
-            //     }
-
-
-            //     this.controls.enabled = this.viewMode
-            // })
-
-            // this.gui.add(this.params,'Canvas View')
-
-            // this.gui.add(this.params,'Attach to camera')
-            // .onChange((v)=>{
-            //     this.params['Attach to camera'] = v
-
-            //     if (this.params['Attach to camera']){
-            //         // console.log('attach')
-
-            //         // this.resultPlane.lookAt(this.camera.position.clone())
-            //         // this.tempResulpPlane.lookAt(this.camera.position.clone())
-
-            //         this.setCameraToDef()
-
-            //         this.camera.attach(this.resultPlane)
-            //         this.camera.attach(this.tempResulpPlane)
-
-            //         // this.camera.lookAt(this.resultPlane.position.clone()) // when skew 
-
-            //         if (!this.gui.__folders['Plane settings']&&this.viewMode){
-            //             const mainFolder = this.gui.addFolder('Plane settings')
-            //             // const skewFolder = mainFolder.addFolder('Skew')
-            //             const translatFolder = mainFolder.addFolder('Translate')
-            //             // const rotFolder = mainFolder.addFolder('Rotation')
-            //             // const scaleFolder = mainFolder.addFolder('Scale')
-        
-        
-            //             // skewFolder.add(rlstPlaneSett.skew,'X',-10,10,0.01)
-            //             // .onChange((x) => {
-        
-            //             //     // const neg = -1 
-            //             //     // const pos = 1
-        
-            //             //     // let dir = 1
-        
-            //             //     // if (x===rlstPlaneSett.skew.prev) return
-        
-            //             //     // if (x>0){
-            //             //     //     if (x>rlstPlaneSett.skew.prev){
-            //             //     //         dir = pos 
-            //             //     //     } else {
-            //             //     //         dir = neg
-            //             //     //     }
-        
-        
-            //             //     // } else if (x<0){
-            //             //     //     if (x<rlstPlaneSett.skew.prev){
-            //             //     //         dir = pos 
-            //             //     //     } else {
-            //             //     //         dir = neg
-            //             //     //     }
-        
-            //             //     // }
-        
-            //             //     // console.log(dir)
-        
-            //             //     // const newX = x * dir 
-        
-            //             //     // const matrix = new THREE.Matrix4();
-         
-            //             //     // matrix.makeShear(0, newX*DEG2RAD,0, 0, 0, 0);
-            //             //     // // console.log(resultPlane.matrixAutoUpdate )
-            //             //     // // apply shear matrix to geometry                  
-            //             //     // resultPlane.matrix.multiply(matrix.clone())
-            //             //     // tempResulpPlane.matrix.multiply(matrix.clone())
-            //             //     // resultPlane.matrixAutoUpdate=false
-            //             //     // tempResulpPlane.matrixAutoUpdate=false
-        
-            //             //     // rlstPlaneSett.skew.prev = x
-            //             // })
-        
-            //             translatFolder.add(rlstPlaneSett.t,'Z',0,1,0.01)
-            //             .onChange((z) => {
-        
-        
-        
-            //                 const h = 2 * Math.tan((this.camera.fov) * (Math.PI/360)) * (this.camera.near + z) 
-            //                 const w = h * this.camera.aspect
-            //                 const buff = [...this.resultPlane.geometry.getAttribute('position').array]
-            //                 const fw = Math.abs(buff[0]) + Math.abs(buff[3]) 
-            //                 // const fh = Math.abs(buff[1]) + Math.abs(buff[7]) 
-            //                 // resultPlane.translateZ(-z)
-            //                 // resultPlane.scale.set(w/fw,h/fh,h/fh) //.scale.set(w/fw,h/fh,1)
-            //                 // tempResulpPlane.scale.set(w/fw,h/fh,h/fh)
-            //                 // const m = cameraP.projectionMatrix.clone().makeTranslation(0,0,z)
-            //                 // const vert = new Float32Array( buff.map((item,index) => { 
-            //                 //     if (index === 2 || index === 5 || index === 8 || index === 11) return item 
-            //                 //     return item * Math.abs(w/fw)
-            //                 // } ) )
-            //                 // resultPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
-            //                 // tempResulpPlane.geometry.setAttribute('position', new THREE.BufferAttribute( vert, 3 ))
-        
-            //                 this.resultPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1) //.scale.set(w/fw,h/fh,1)
-            //                 this.tempResulpPlane.scale.set( Math.abs(w/fw), Math.abs(w/fw),1)
-        
-                    
-        
-            //                 this.resultPlane.geometry.attributes.position.needsUpdate = true
-            //                 this.tempResulpPlane.geometry.attributes.position.needsUpdate = true
-        
-                            
-            //                 this.resultPlane.position.z = rsltPlZ - z
-            //                 this.tempResulpPlane.position.z = rsltPlZ - z
-        
-            //             })
-            //         }
-
-            //     } else {
-            //         // console.log('remove')
-
-            //         this.scene.attach(this.resultPlane)
-            //         this.scene.attach(this.tempResulpPlane)
-
-            //         this.saveCamera()
-
-            //         if (this.gui.__folders['Plane settings']){
-            //             this.gui.removeFolder(this.gui.__folders['Plane settings'])
-            //         }
-
-            //     }
-
-            // })
-    
     }
 
 }

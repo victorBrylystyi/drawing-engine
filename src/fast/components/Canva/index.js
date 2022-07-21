@@ -35,10 +35,9 @@ class Canva extends THREE.Object3D {
             })
         )
 
-        this.mainLayer.name = 'mainLayer'
+        this.mainLayer.name = `mainLayer ${this.name}`
         this.add(this.mainLayer)
         this.visible = true
-
 
         this.strokes
         .pipe(
@@ -46,17 +45,15 @@ class Canva extends THREE.Object3D {
                 observeOn(animationFrameScheduler)
         )
         .subscribe(v => {
+            // redraw if 
+            // strokes.length !== idStrokes.length || 
+            // strokes[i].id !== idStrokes[i].id
 
-
-            if (v.length !== this.idStrokes.value.length || v.map(stroke => this.idStrokes.value.find(id => id === stroke.id)).find(elem => elem === undefined)){
+            if (v.length !== this.idStrokes.value.length || 
+                v.map(stroke => this.idStrokes.value.find(id => id === stroke.id)).find(elem => elem === undefined)){
                 console.log('redraw', v)
                 this.engine.drawByStore(this.userData.id, v)
             } 
-
-            // проверка на равенство количества штрихов 
-            // если количество штрихов не совпадает то перерисовать 
-            // иначе, проверка на если хотябы 1 id нет из v в сравнении с this.idStrokes -> перерисовать 
-            
 
             this.idStrokes
             .next(v.map(stroke => stroke.id))
@@ -67,9 +64,10 @@ class Canva extends THREE.Object3D {
         .pipe(
             distinct()
         )
-        .subscribe(v => console.log('canva', v ))
+        .subscribe(v => console.log(this.name, v ))
 
     }
+
     updateFromCamera(camera){
 
         const A = new THREE.Vector3(-1, 1, -0.99999)

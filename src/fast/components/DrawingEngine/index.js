@@ -222,7 +222,9 @@ class Engine extends THREE.Object3D {
                     this.canvaList.push(canva)
                 }
 
-                this.canvaList[i].strokes
+                const newIndexInCanvaList = this.canvaList.findIndex(canva => canva.userData.id === layers[i].id)
+
+                this.canvaList[newIndexInCanvaList].strokes
                 .next(layers[i].strokes)
             }
 
@@ -251,12 +253,15 @@ class Engine extends THREE.Object3D {
     }
 
     drawByStore(canvaId,strokes){
+        console.log('start', canvaId)
 
         this.setActiveCanvaById(canvaId)
+        // this.setCleanScreenActiveLayer()
 
         for (let i=0; i < strokes.length; i++){
-
             const stroke = strokes[i]
+
+            console.log(stroke, this.activeCanva.name, stroke.attributes.position.length)
 
             this.setBrushColor(stroke.brushColor)
             this.setBrushShape(stroke.brush)
@@ -266,76 +271,94 @@ class Engine extends THREE.Object3D {
 
             this.brush.material.uniforms.initialPoint.value = new THREE.Vector2(stroke.initialPoint.x, stroke.initialPoint.y)
 
-            const currentLength = stroke.attributes.position.length
+            // const currentLength = stroke.attributes.position.length
 
-            if (currentLength > this.count ){
+            // if (currentLength > this.count ){
 
-                const groupsCount = Math.ceil(currentLength / this.count) 
-                let a = 0
+            //     const groupsCount = Math.ceil(currentLength / this.count) 
+            //     let a = 0
 
-                for (let c = 1; c <= groupsCount; c ++ ){
+            //     for (let c = 1; c <= groupsCount; c ++ ){
 
-                    const len = (c === groupsCount) ? currentLength - this.count * (c-1)   :  this.count 
-                    // console.log(len)
+            //         const len = (c === groupsCount) ? currentLength - this.count * (c-1)   :  this.count 
+            //         // console.log(len)
     
 
-                    for (let cc=1; cc <= len; cc++){
+            //         for (let cc=1; cc <= len; cc++){
 
-                        const arrIndex = cc + a
+            //             const arrIndex = cc + a
 
-                        const currentPos = stroke.attributes.position[arrIndex-1]
-                        const currentPressure = stroke.attributes.pressure[arrIndex-1]
-                        const currentTilt = stroke.attributes.tilt[arrIndex-1]
+            //             const currentPos = stroke.attributes.position[arrIndex-1]
+            //             const currentPressure = stroke.attributes.pressure[arrIndex-1]
+            //             const currentTilt = stroke.attributes.tilt[arrIndex-1]
         
-                            const matrix = new THREE.Matrix4()
-                            matrix.setPosition(currentPos[0],currentPos[1],currentPos[2])
-                            this.brush.setMatrixAt(len-1, matrix)
-                            this.brush.instanceMatrix.needsUpdate = true
+            //                 const matrix = new THREE.Matrix4()
+            //                 matrix.setPosition(currentPos[0],currentPos[1],currentPos[2])
+            //                 this.brush.setMatrixAt(len-1, matrix)
+            //                 this.brush.instanceMatrix.needsUpdate = true
         
-                        this.brush.material.uniforms.pressure.value = currentPressure
-                        this.brush.material.uniforms.tilt.value = currentTilt
+            //             this.brush.material.uniforms.pressure.value = currentPressure
+            //             this.brush.material.uniforms.tilt.value = currentTilt
         
-                        this._renderMove()
+            //             this._renderMove()
         
-                    }
-                    a += len
-                }
-
-                this._renderUp()
-                this.setClearTempLayer()
+            //         }
+            //         a += len
+            //     }
 
 
-            } else {
+            // } else {
 
-                this.brush.count = stroke.attributes.position.length
+            //     this.brush.count = stroke.attributes.position.length
 
-                for (let a=0; a < stroke.attributes.position.length; a++){
+            //     for (let a=0; a < stroke.attributes.position.length; a++){
     
-                    const currentPos = stroke.attributes.position[a]
-                    const currentPressure = stroke.attributes.pressure[a]
-                    const currentTilt = stroke.attributes.tilt[a]
+            //         const currentPos = stroke.attributes.position[a]
+            //         const currentPressure = stroke.attributes.pressure[a]
+            //         const currentTilt = stroke.attributes.tilt[a]
     
-                        const matrix = new THREE.Matrix4()
-                        matrix.setPosition(currentPos[0],currentPos[1],currentPos[2])
-                        this.brush.setMatrixAt(a, matrix)
-                        this.brush.instanceMatrix.needsUpdate = true
+            //             const matrix = new THREE.Matrix4()
+            //             matrix.setPosition(currentPos[0],currentPos[1],currentPos[2])
+            //             this.brush.setMatrixAt(a, matrix)
+            //             this.brush.instanceMatrix.needsUpdate = true
     
-                    this.brush.material.uniforms.pressure.value = currentPressure
-                    this.brush.material.uniforms.tilt.value = currentTilt
+            //         this.brush.material.uniforms.pressure.value = currentPressure
+            //         this.brush.material.uniforms.tilt.value = currentTilt
     
-                    this._renderMove()
+            //         this._renderMove()
     
-                }
+            //     }
 
-                this._renderUp()
-                this.setClearTempLayer()
+            // }
 
+            this.brush.count = stroke.attributes.position.length
+
+            for (let a=0; a < stroke.attributes.position.length; a++){
+
+                const currentPos = stroke.attributes.position[a]
+                const currentPressure = stroke.attributes.pressure[a]
+                const currentTilt = stroke.attributes.tilt[a]
+
+                    const matrix = new THREE.Matrix4()
+                    matrix.setPosition(currentPos[0],currentPos[1],currentPos[2])
+                    this.brush.setMatrixAt(a, matrix)
+                    this.brush.instanceMatrix.needsUpdate = true
+
+                this.brush.material.uniforms.pressure.value = currentPressure
+                this.brush.material.uniforms.tilt.value = currentTilt
+
+                this._renderMove()
             }
 
-
-
+            this.brush.count = 0 
 
         }
+
+        this._renderUp()
+        this.setClearTempLayer()
+
+        this.setActiveCanvaById(null)
+        console.log('end', canvaId)
     }
 
     setCleanScreenActiveLayer(){
@@ -357,6 +380,7 @@ class Engine extends THREE.Object3D {
     }
 
     setClearTempLayer(){
+        console.log('setClearTempLayer',this.workLayer.parent)
         this.renderer.setRenderTarget(this.workLayer.temporaryLayerRT)
         this.renderer.setClearColor(new THREE.Color(0x000000), 0)
         this.renderer.clearColor()
@@ -555,6 +579,8 @@ class Engine extends THREE.Object3D {
             this.renderer.setRenderTarget(this.workLayer.mainLayerRT)
             this.renderer.setClearColor(new THREE.Color(0x000000), 0)
             this.renderer.clearColor()
+
+            console.log(this.activeCanva.mainLayer.name)
     
             this.quad2.material.map = this.activeCanva.mainLayer.material.map
             this.quad2.render(this.renderer)
@@ -568,17 +594,10 @@ class Engine extends THREE.Object3D {
 
             this.activeCanva.isAddToEngine = true
 
-            // console.log('main',this.activeCanva.mainLayer.position.clone())
-            // console.log('temp',this.workLayer.tempLayer.position.clone())
-
 
         }
         console.log(canva)
 
-        // this.dispatchEvent({
-        //     type:'setActiveCanva',
-        //     payload: (name !== 'none') && (canva) ? name : null
-        // })
 
     }
 
@@ -704,18 +723,6 @@ class Engine extends THREE.Object3D {
                     },
                     opacity: this.workLayer.tempLayer.material.opacity
                 })
-
-                // this.dispatchEvent({
-                //     type:'onDown',
-                //     payload: this._onDown()
-                // })
-
-                // this.dispatchEvent({
-                //     type:'onMove',
-                //     payload: this._onMove([pointerWorldPos.x,pointerWorldPos.y,0], this.brush.material.uniforms.pressure.value)
-                // })
-
-                // } 
             } 
         }
     }
@@ -805,7 +812,6 @@ class Engine extends THREE.Object3D {
 
     _upHandler(){
         // event.preventDefault()
-        console.log('up')
 
         if(!this.viewMode && this.activeCanva && this.paint){
             this._renderUp()
@@ -838,21 +844,8 @@ class Engine extends THREE.Object3D {
                 payload: this.engineStore.getValue()
             })
 
-            // console.log('test', this.activeCanva.strokes.getValue())
-
-
-
-
-
             this.currentStroke
             .next(JSON.parse(JSON.stringify({...init})))
-
-            
-
-            // this.dispatchEvent({
-            //     type:'onUp',
-            //     payload: this._onUp()
-            // })
         }
 
         this.paint = false
